@@ -1,0 +1,16 @@
+{
+  "name": "Mud Engineer Pro",
+  "short_name": "MudEngPro",
+  "description": "Drilling-fluids field calculators, training courses and built-in mud manual — fully offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1419",
+  "theme_color": "#e8a33d",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

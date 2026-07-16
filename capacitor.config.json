@@ -1,0 +1,9 @@
+{
+  "appId": "com.mudengineer.pro",
+  "appName": "Mud Engineer Pro",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#0f1419",
+  "android": { "allowMixedContent": false },
+  "ios": { "contentInset": "always" }
+}

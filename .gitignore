@@ -1,0 +1,8 @@
+node_modules/
+dist-win/
+android/
+ios/
+www/
+.DS_Store
+Thumbs.db
+*.log
