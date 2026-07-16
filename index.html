@@ -374,6 +374,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .rtbl.out.dmrmud td.pl{text-align:left}
 .rtbl.out.dmrmud tr.calcrow td{background:color-mix(in srgb,var(--accent) 9%,transparent);font-weight:650}
 .rtbl.out.dmrmud tr.calcrow td.pl{color:var(--brand2)}
+.rtbl.out td.cc{font-weight:750;color:var(--brand2);background:color-mix(in srgb,var(--accent) 8%,transparent)}
 /* Mud proposal */
 #propout{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
 .psec{border:1px solid var(--line2);border-radius:11px;padding:12px 14px;margin-bottom:11px;background:var(--bg-2)}
@@ -2575,9 +2576,9 @@ const app = {
            {label:'DP × Open Hole', hole:8.5, pipe:5, len:5000},
            {label:'DC × Open Hole', hole:8.5, pipe:6.5, len:1000} ],
     pitActive:655, pitReserve:300, lossShaker:15, lossForm:78, lossOther:6, dailyProdCost:0,
-    prods:[ {name:'BARITE 4.1 SG', unit:'mt', size:1500, qty:26, price:81.93},
-            {name:'CaCO₃ (F&M)', unit:'sx', size:2200, qty:3, price:33.9},
-            {name:'Sulphonated Asphalt', unit:'sx', size:100, qty:13, price:18} ],
+    prods:[ {name:'BARITE 4.1 SG', unit:'mt', size:2204, start:100, recv:20, used:26, cum:141, price:81.93},
+            {name:'CaCO₃ (F&M)', unit:'bag', size:2200, start:15, recv:0, used:3, cum:8, price:33.9},
+            {name:'Sulphonated Asphalt', unit:'sx', size:55, start:302, recv:0, used:13, cum:75, price:18} ],
     // reported values for VERIFY mode (blank = generate mode)
     vPV:'', vYP:'', vLSYP:'', vOWR:'', vWPS:'', vAV:'', vECD:'', vBU:'', vBitdp:''
   }, lsGet('mep_dmr', {})),
@@ -2990,7 +2991,7 @@ const app = {
   },
   dmrSet(k,v){ this.dmr[k]=v; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); if(document.getElementById('dmrout')) this.dmrCompute(); },
   dmrProdRow(i,f,v){ this.dmr.prods[i][f]=(f==='name'||f==='unit')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
-  dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,qty:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,start:0,recv:0,used:0,cum:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDelProd(i){ this.dmr.prods.splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrRow(kind,i,f,v){ this.dmr[kind][i][f]=(f==='label')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
   dmrAdd(kind){ if(kind==='pipes') this.dmr.pipes.push({label:'New section',od:5,id:4.276,len:1000}); else this.dmr.anns.push({label:'New section',hole:8.5,pipe:5,len:1000}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
@@ -3005,11 +3006,16 @@ const app = {
     const F=(lbl,id,unit)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="d_${id}" value="${d[id]!==undefined?d[id]:''}" oninput="app.dmrCompute()"/>${unit?`<span class="unit">${unit}</span>`:''}</div></div>`;
     const T=(lbl,id)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="d_${id}" value="${d[id]||''}" oninput="app.dmrSet('${id}',this.value)" placeholder="—"/></div></div>`;
     const sel=(lbl,id,opts)=>`<div class="rf"><label>${lbl}</label><div class="inp"><select id="d_${id}" onchange="app.dmrSet('${id}',this.value);app.renderDMR(document.getElementById('view'),${!!verify})">${opts.map(o=>`<option ${d[id]===o?'selected':''}>${o}</option>`).join('')}</select></div></div>`;
+    const pv0=(p,f,alt)=>p[f]!==undefined?p[f]:(alt!==undefined?(p[alt]!==undefined?p[alt]:0):0);
     let prodRows=d.prods.map((p,i)=>`<tr>
       <td><input class="ri" value="${p.name}" oninput="app.dmrProdRow(${i},'name',this.value)"/></td>
       <td><input class="ri" value="${p.unit}" oninput="app.dmrProdRow(${i},'unit',this.value)"/></td>
-      <td><input class="ri n" value="${p.qty}" oninput="app.dmrProdRow(${i},'qty',this.value)"/></td>
-      <td><input class="ri n" value="${p.price}" oninput="app.dmrProdRow(${i},'price',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'size')}" oninput="app.dmrProdRow(${i},'size',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'start')}" oninput="app.dmrProdRow(${i},'start',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'recv')}" oninput="app.dmrProdRow(${i},'recv',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'used','qty')}" oninput="app.dmrProdRow(${i},'used',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'cum','used')}" oninput="app.dmrProdRow(${i},'cum',this.value)"/></td>
+      <td><input class="ri n" value="${pv0(p,'price')}" oninput="app.dmrProdRow(${i},'price',this.value)"/></td>
       <td class="rx"><button onclick="app.dmrDelProd(${i})" title="Remove">✕</button></td></tr>`).join('');
     const vfld=(lbl,id)=>`<div class="rf"><label>${lbl} <span class="vtag">reported</span></label><div class="inp"><input id="d_${id}" value="${d[id]||''}" oninput="app.dmrCompute()" placeholder="from report"/></div></div>`;
     view.innerHTML=`<div class="rep fade">
@@ -3065,8 +3071,8 @@ const app = {
           <div class="rf" style="flex:100%"><label>Fluid treatments / recommended tour treatments</label><textarea class="rtxa" id="d_treatments" oninput="app.dmrSet('treatments',this.value)" placeholder="e.g. Maintain graphite as bridging + Soltex/Latex for shale inhibition + Gilsonite for FL &lt; 2.5 cc. Add lime to keep excess lime in range; add 2 dr wetting agent per 34 MT weight material…">${d.treatments||''}</textarea></div>
           <div class="rf" style="flex:100%"><label>Forecast / next operation</label><textarea class="rtxa" id="d_forecast" oninput="app.dmrSet('forecast',this.value)" placeholder="e.g. RIH 12¼'' clean-out BHA, circulate &amp; POOH; objective: drill Lower Mauddud deviated single producer with ESP completion.">${d.forecast||''}</textarea></div>
         </div></div>
-        <div class="rf-sec"><div class="rf-h">Products used &amp; cost  <button class="addbtn" onclick="app.dmrAddProd()">+ add product</button></div>
-          <table class="rtbl"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th></th></tr></thead><tbody>${prodRows}</tbody></table>
+        <div class="rf-sec"><div class="rf-h">Inventory, usage &amp; cost  <span class="rf-note">concentration is auto-calculated from cumulative used × unit size ÷ active volume</span>  <button class="addbtn" onclick="app.dmrAddProd()">+ add product</button></div>
+          <div class="rtbl-wrap"><table class="rtbl"><thead><tr><th>Product</th><th>Unit</th><th>Size (lb/unit)</th><th>Opening</th><th>Received</th><th>Used (24h)</th><th>Cum. used</th><th>Unit price</th><th></th></tr></thead><tbody>${prodRows}</tbody></table></div>
         </div>
         ${verify?`<div class="rf-sec vsec"><div class="rf-h">Reported results (for verification)</div><div class="rf-row">
           ${vfld('PV','vPV')}${vfld('YP','vYP')}${vfld('LSYP','vLSYP')}${vfld('OWR (oil)','vOWR')}${vfld('WPS ppm','vWPS')}${vfld('Ann. vel.','vAV')}${vfld('ECD','vECD')}${vfld('Bottoms-up min','vBU')}${vfld('Bit ΔP','vBitdp')}
@@ -3138,8 +3144,9 @@ const app = {
     const ecd=rho+aTot/(0.052*TVD);
     // cuttings-loaded ECD (approx: adds cuttings as extra annular density from ROP if entered — omitted, static)
     const esd=rho;
-    // ---- cost ----
-    const dailyCost=d.prods.reduce((s,p)=>s+(p.qty||0)*(p.price||0),0);
+    // ---- inventory / concentration / cost ----
+    const pUsed=p=>(+p.used|| +p.qty||0), pStart=p=>(+p.start||0), pRecv=p=>(+p.recv||0), pCum=p=> p.cum!==undefined?(+p.cum||0):(+p.used|| +p.qty||0), pSize=p=>(+p.size||0), pPrice=p=>(+p.price||0);
+    const dailyCost=d.prods.reduce((s,p)=>s+pUsed(p)*pPrice(p),0);
     // ---- output ----
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
     const tile=(l,v,u,c)=>`<div class="rk"><div class="rk-l">${l}</div><div class="rk-v"${c?` style="color:${c}"`:''}>${v}<small>${u||''}</small></div></div>`;
@@ -3223,11 +3230,12 @@ const app = {
       <tr><td>Jet velocity</td><td>${R(vn)} ft/s</td><td>HSI</td><td>${R(hsi,2)} hp/in²</td></tr>
       <tr><td>TFA</td><td>${R(tfa,3)} in²</td><td>Jet impact force</td><td>${R(impact)} lbf</td></tr>
     </tbody></table></div>
-    <h4 class="rep-h">Products used &amp; cost</h4>
-    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th>Cost</th></tr></thead><tbody>
-      ${d.prods.map(p=>`<tr><td>${p.name}</td><td>${p.unit}</td><td>${R(p.qty,1)}</td><td>${R(p.price,3)}</td><td>${R((p.qty||0)*(p.price||0),2)}</td></tr>`).join('')}
-      <tr class="rtot"><td colspan="4">Daily product cost</td><td>${R(dailyCost,2)}</td></tr>
+    <h4 class="rep-h">Inventory, concentration &amp; cost  <span style="font-weight:500;font-size:11px;color:var(--faint)">— active volume ${R(totVol,0)} bbl</span></h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Product</th><th>Unit</th><th>Size lb</th><th>Opening</th><th>Recv</th><th>Used</th><th>Ending</th><th>Cum. used</th><th>Conc lb/bbl</th><th>Daily cost</th></tr></thead><tbody>
+      ${d.prods.map(p=>{ const end=pStart(p)+pRecv(p)-pUsed(p); const conc=totVol>0?pCum(p)*pSize(p)/totVol:0; return `<tr><td class="pl">${p.name}</td><td>${p.unit||''}</td><td>${R(pSize(p))}</td><td>${R(pStart(p),1)}</td><td>${R(pRecv(p),1)}</td><td>${R(pUsed(p),1)}</td><td>${R(end,1)}</td><td>${R(pCum(p),1)}</td><td class="cc">${R(conc,2)}</td><td>${R(pUsed(p)*pPrice(p),2)}</td></tr>`; }).join('')}
+      <tr class="rtot"><td colspan="9">Daily product cost</td><td>${R(dailyCost,2)}</td></tr>
     </tbody></table></div>
+    <p class="rep-sub">Concentration (lb/bbl) = cumulative used × unit size (lb) ÷ active system volume (${R(totVol,0)} bbl). Ending stock = opening + received − used. Enter cumulative used per product; new products default cum = today's usage.</p>
     ${cmp}
     <p class="rep-sub">All bold/derived values are computed by the app from the measured inputs: PV/YP/LSYP, n/K, OWR, WPS (CaCl₂), <b>excess lime = 1.295×Pₘ</b>, brine content &amp; salt-corrected solids, LGS/HGS split, full multi-section pressure losses, standpipe pressure, ECD, bottoms-up &amp; bit hydraulics. Company style = ${d.company}.</p>`;
     const out=document.getElementById('dmrout'); if(out)out.innerHTML=html;
