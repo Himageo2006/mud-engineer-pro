@@ -422,7 +422,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <div>
         <h1>Mud Engineer <span>Pro</span></h1>
-        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)">v4.1</b></small>
+        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)">v4.2</b></small>
       </div>
     </div>
     <div class="search"><div class="sbox"><input id="search" placeholder="Search calculators, courses, manual…" autocomplete="off"/></div></div>
@@ -533,7 +533,7 @@ const CALCICON = {
   bithyd:'nozzle',presloss:'wind',critvel:'gauge',surge:'trend',
   bingham:'activity',powerlaw:'wave',ecd:'gauge',
   retort:'layers',mbt:'flask',diln:'droplet',sag:'trend',
-  alkalinity:'flask',chlorides:'crystal',hardness:'crystal',owr:'droplet',
+  alkalinity:'flask',chlorides:'crystal',hardness:'crystal',owr:'droplet',owradj:'mix',
   brine:'beaker',gyp:'crystal',sodaash:'droplet',corrate:'shield',
   porepred:'gauge',dexp:'trend',fracgrad:'alert',lot:'gauge',kick:'alert',tripmargin:'shield',gascut:'wind',
   plug:'bricks'
@@ -1044,6 +1044,56 @@ def('Chemistry',{
       formula:'OWR = %oil/(%oil+%water) : %water/(%oil+%water)  (×100)',
       steps:`Liquid = ${round(v.oil)}+${round(v.water)} = ${round(liq)}%\nOWR = <b>${round(o,0)} / ${round(w,0)}</b>`,
       note:'Typical OBM 70/30–90/10. Rising water % (dropping OWR) → water influx or emulsion breakdown; add emulsifier/oil.'};
+  }
+});
+def('Chemistry',{
+  id:'owradj', name:'Oil/Water Ratio — Adjust', icon:'🛢️',
+  desc:'Base oil to add to RAISE the O/W ratio, or water/brine to add to LOWER it.',
+  inputs:[
+    {k:'mode',label:'Adjustment',unit:'',def:'up',rerender:true,opts:[['up','Raise OWR  (add base oil)'],['down','Lower OWR  (add water / brine)']]},
+    {k:'oil',label:'Retort Oil',unit:'vol %',def:60},
+    {k:'water',label:'Retort Water',unit:'vol %',def:25},
+    {k:'tor',label:'Desired Oil Ratio',unit:'% oil',def:80},
+    {k:'vol',label:'Mud Volume to convert',unit:'bbl',def:500}
+  ],
+  calc(v){
+    const liq=v.oil+v.water;
+    if(liq<=0) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Enter the retort oil & water volumes.'};
+    const curOR=v.oil/liq*100, curWR=100-curOR;
+    if(v.tor<=0||v.tor>=100) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Desired oil ratio must be between 1 and 99 %.'};
+    if(v.mode==='up'){
+      if(v.tor<=curOR) return {main:{n:'—',v:'—',u:''},rows:[],warn:'To ADD OIL the desired oil ratio must be higher than the current '+round(curOR,1)+'%. To lower it, switch to "Lower OWR".'};
+      const WR2=100-v.tor;
+      const perBbl=v.water/WR2 - liq/100;      // bbl base oil per bbl mud
+      const total=perBbl*v.vol;
+      return {main:{n:'Base Oil to Add',v:round(total,1),u:'bbl'},
+        rows:[
+          {k:'Oil per bbl of mud',v:round(perBbl,3)+' bbl/bbl'},
+          {k:'Current OWR',v:round(curOR,0)+' / '+round(curWR,0)},
+          {k:'New OWR (target)',v:round(v.tor,0)+' / '+round(WR2,0)},
+          {k:'Total oil',v:round(total*42,0)+' US gal'},
+          {k:'New mud volume',v:round(v.vol+total,1)+' bbl'}
+        ],
+        formula:'Oil to add (bbl/bbl) = %water ÷ WR₂ − (%oil + %water) ÷ 100\n   WR₂ = 100 − desired oil ratio',
+        steps:`= ${round(v.water)} ÷ ${round(WR2)} − ${round(liq)} ÷ 100 = ${round(perBbl,3)} bbl/bbl\nTotal = ${round(perBbl,3)} × ${round(v.vol,0)} = <b>${round(total,1)} bbl</b>`,
+        note:'Adding base oil raises the oil ratio and thins the mud — it lowers the mud weight, so re-weight with barite and re-check ES afterwards.'};
+    } else {
+      if(v.tor>=curOR) return {main:{n:'—',v:'—',u:''},rows:[],warn:'To ADD WATER the desired oil ratio must be lower than the current '+round(curOR,1)+'%. To raise it, switch to "Raise OWR".'};
+      const OR2=v.tor;
+      const perBbl=v.oil/OR2 - liq/100;        // bbl water/brine per bbl mud
+      const total=perBbl*v.vol;
+      return {main:{n:'Water / Brine to Add',v:round(total,1),u:'bbl'},
+        rows:[
+          {k:'Water per bbl of mud',v:round(perBbl,3)+' bbl/bbl'},
+          {k:'Current OWR',v:round(curOR,0)+' / '+round(curWR,0)},
+          {k:'New OWR (target)',v:round(OR2,0)+' / '+round(100-OR2,0)},
+          {k:'Total water/brine',v:round(total*42,0)+' US gal'},
+          {k:'New mud volume',v:round(v.vol+total,1)+' bbl'}
+        ],
+        formula:'Water to add (bbl/bbl) = %oil ÷ OR₂ − (%oil + %water) ÷ 100\n   OR₂ = desired oil ratio',
+        steps:`= ${round(v.oil)} ÷ ${round(OR2)} − ${round(liq)} ÷ 100 = ${round(perBbl,3)} bbl/bbl\nTotal = ${round(perBbl,3)} × ${round(v.vol,0)} = <b>${round(total,1)} bbl</b>`,
+        note:'Add the SAME-salinity brine as the mud\'s internal phase (usually CaCl₂), never fresh water, or you change the water activity / ES. Lowering OWR raises viscosity.'};
+    }
   }
 });
 
