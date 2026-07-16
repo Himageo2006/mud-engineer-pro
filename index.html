@@ -532,6 +532,7 @@ const CALCICON = {
   capacity:'ruler',pump:'pump',annvel:'wind',slug:'droplet',tank:'cylinder',
   bithyd:'nozzle',presloss:'wind',critvel:'gauge',surge:'trend',cuttings:'layers',
   pilot:'flask',tripfill:'cylinder',circtime:'clock',displace:'bricks',
+  wps:'crystal',wpsadj:'flask',ooc:'droplet',recparams:'check',
   bingham:'activity',powerlaw:'wave',ecd:'gauge',
   retort:'layers',mbt:'flask',diln:'droplet',sag:'trend',
   alkalinity:'flask',chlorides:'crystal',hardness:'crystal',owr:'droplet',owradj:'mix',
@@ -1649,11 +1650,12 @@ def('Solids',{
 /* ===== BRINE & TREATMENT ===== */
 def('Brine',{
   id:'brine', name:'Brine Density (single salt)', icon:'🧂',
-  desc:'Salt concentration, weighting and crystallization point to build a solids-free brine.',
+  desc:'Salt concentration, weighting and crystallization point to build a solids-free brine — with commercial-salt purity.',
   inputs:[
     {k:'salt',label:'Salt',unit:'',def:'CACL2',opts:[['NACL','Sodium Chloride (NaCl) → 10.0 ppg'],['KCL','Potassium Chloride (KCl) → 9.7 ppg'],['CACL2','Calcium Chloride (CaCl₂) → 11.7 ppg']]},
     {k:'ppgt',label:'Target Brine Weight',unit:'ppg',def:10},
-    {k:'vol',label:'Brine Volume to build',unit:'bbl',def:100}
+    {k:'vol',label:'Brine Volume to build',unit:'bbl',def:100},
+    {k:'purity',label:'Commercial salt purity',unit:'%',def:94}
   ],
   calc(v){
     const t=BRINE[v.salt]; const last=t[t.length-1];
@@ -1663,18 +1665,23 @@ def('Brine',{
     for(let i=0;i<t.length-1;i++){const a=t[i],b=t[i+1];
       if(v.ppgt>=a[2]&&v.ppgt<=b[2]){const f=(v.ppgt-a[2])/(b[2]-a[2]);
         pct=a[0]+f*(b[0]-a[0]); salt=a[3]+f*(b[3]-a[3]); chlor=a[4]+f*(b[4]-a[4]); cryst=a[6]+f*(b[6]-a[6]); break;}}
-    const totSalt=salt*v.vol;
+    const totSalt=salt*v.vol;                                    // pure salt needed
+    const pf=(v.purity>0&&v.purity<=100)? v.purity/100 : 1;       // purity fraction
+    const grossLbBbl=salt/pf, grossTot=totSalt/pf;               // commercial (gross) salt to weigh out
+    const pure = pf<1;
     return {main:{n:'Salt Concentration',v:round(pct,1),u:'% by wt'},
       rows:[
-        {k:'Salt required',v:round(salt,1)+' lb/bbl  ('+round(totSalt,0)+' lb total)'},
-        {k:'Salt (sacks 100 lb)',v:round(totSalt/100,0)+' sacks'},
+        {k:'Pure salt required',v:round(salt,1)+' lb/bbl  ('+round(totSalt,0)+' lb total)'},
+        {k:'Commercial salt @ '+round(v.purity,0)+'% purity',v:round(grossLbBbl,1)+' lb/bbl  ('+round(grossTot,0)+' lb total)'},
+        {k:'Commercial salt (sacks 100 lb)',v:round(grossTot/100,0)+' sacks'},
+        {k:'Commercial salt (tonnes)',v:round(grossTot*0.000453592,2)+' t'},
         {k:'Chloride content',v:round(chlor,0)+' mg/L'},
         {k:'Crystallization point',v:round(cryst,0)+' °F ('+round((cryst-32)*5/9,0)+' °C)'},
         {k:'Brine SG',v:round(v.ppgt/8.345,3)}
       ],
-      formula:'Interpolated from API brine tables (density ↔ % salt ↔ Cl⁻ ↔ TCT).',
-      steps:`${round(v.ppgt)} ppg ${v.salt} → <b>${round(pct,1)}% wt</b>, ${round(salt,1)} lb/bbl, TCT ${round(cryst,0)}°F`,
-      note:'TCT (True Crystallization Temperature) must stay below the lowest expected surface/seabed temperature. NaCl caps ~10.0 ppg, CaCl₂ ~11.7 ppg; heavier needs CaBr₂/formates.'};
+      formula:'Interpolated from API brine tables (density ↔ % salt ↔ Cl⁻ ↔ TCT).\nCommercial salt = pure salt ÷ (purity ÷ 100)',
+      steps:`${round(v.ppgt)} ppg ${v.salt} → <b>${round(pct,1)}% wt</b>, pure ${round(salt,1)} lb/bbl\nCommercial = ${round(salt,1)} ÷ ${round(pf,3)} = <b>${round(grossLbBbl,1)} lb/bbl</b>`,
+      note:(pure?'Commercial CaCl₂ is typically 94–97% and NaCl 98%; weigh out the GROSS (commercial) figure so the effective pure-salt concentration is met. ':'')+'TCT (True Crystallization Temperature) must stay below the lowest expected surface/seabed temperature. NaCl caps ~10.0 ppg, CaCl₂ ~11.7 ppg; heavier needs CaBr₂/formates.'};
   }
 });
 def('Brine',{
@@ -1903,6 +1910,165 @@ def('Cementing',{
       formula:'Displacement = ID²÷1029.4 × float-collar depth  (+ surface lines)\nStrokes = displacement ÷ pump output',
       steps:`cap = ${round(v.id)}² ÷ 1029.4 = <b>${round(cap,4)} bbl/ft</b>\nVol = ${round(cap,4)} × ${round(v.fc,0)} = <b>${round(dispVol,1)} bbl</b>\nStrokes = ${round(dispVol,1)} ÷ ${round(v.po,3)} = <b>${round(strokes,0)} stk</b>`,
       note:'Displace the top plug to the float collar; slow to a low, controlled rate for the last few barrels and watch for the pressure rise ("bump"). Do not over-displace past the float. Add surface-line volume when displacing from a cement unit through long treating lines.'};
+  }
+});
+
+/* ===== ADDED CALCULATORS (v4.2) — WPS / oil-on-cuttings / recommended parameters ===== */
+/* CaCl2 brine property tables (wt% → SG @68°F, water activity Aw) for WPS work */
+const CACL2_BRINE=[[0,1.000,1.00],[5,1.040,0.97],[10,1.083,0.93],[15,1.129,0.87],[20,1.178,0.79],[25,1.228,0.70],[30,1.282,0.595],[35,1.339,0.47],[40,1.398,0.34]];
+function cacl2Interp(wt){ const t=CACL2_BRINE; if(wt<=t[0][0])return{sg:t[0][1],aw:t[0][2]}; const last=t[t.length-1]; if(wt>=last[0])return{sg:last[1],aw:last[2]};
+  for(let i=0;i<t.length-1;i++){const a=t[i],b=t[i+1]; if(wt>=a[0]&&wt<=b[0]){const f=(wt-a[0])/(b[0]-a[0]); return{sg:a[1]+f*(b[1]-a[1]),aw:a[2]+f*(b[2]-a[2])};}} return{sg:last[1],aw:last[2]}; }
+
+def('Chemistry',{
+  id:'wps', name:'Water Phase Salinity (WPS)', icon:'🧂',
+  desc:'Water-phase salinity of an oil-based mud from whole-mud chloride + retort — as CaCl₂ wt%, ppm and mg/L, with brine SG & water activity.',
+  inputs:[
+    {k:'cl',label:'Chlorides — whole mud',unit:'mg/L',def:39000},
+    {k:'vw',label:'Water — retort',unit:'% by vol',def:23},
+    {k:'salt',label:'Water-phase salt',unit:'',def:'CACL2',opts:[['CACL2','Calcium Chloride (CaCl₂)'],['NACL','Sodium Chloride (NaCl)']]}
+  ],
+  calc(v){
+    if(v.vw<=0) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Retort water must be greater than zero.'};
+    const f = v.salt==='NACL'? 1.6486 : 1.5643;                 // salt/2Cl mass ratio
+    const name = v.salt==='NACL'? 'NaCl' : 'CaCl₂';
+    const saltWM = v.cl*f;                                       // mg/L whole mud
+    const wt = 100*saltWM/(saltWM + v.vw*1e4);                   // wt% of the water (brine) phase
+    const ppm = wt*1e4;                                          // WPS ppm
+    const br = v.salt==='NACL'? {sg:1+0.0072*wt,aw:1-0.006*wt} : cacl2Interp(wt);
+    const brinePpg = br.sg*8.345;
+    const saltBrine = ppm*br.sg;                                 // mg/L of brine phase
+    return {main:{n:'Water Phase Salinity',v:round(wt,1),u:'% '+name},
+      rows:[
+        {k:'WPS',v:round(ppm,0)+' ppm  (mg/kg)'},
+        {k:name+' in whole mud',v:round(saltWM,0)+' mg/L'},
+        {k:name+' in water phase',v:round(saltBrine,0)+' mg/L'},
+        {k:'Chloride in water phase',v:round(v.cl/(v.vw/100),0)+' mg/L'},
+        {k:'Brine density',v:round(br.sg,3)+' SG  ('+round(brinePpg,2)+' ppg)'},
+        {k:'Water activity (Aw)',v:round(br.aw,3)}
+      ],
+      formula:name+' (mg/L) = Cl⁻ × '+f+'\nWPS (wt%) = 100 × '+name+'(mg/L) ÷ ['+name+'(mg/L) + Water%×10⁴]\nWPS (ppm) = wt% × 10⁴',
+      steps:`${name} = ${round(v.cl,0)} × ${f} = <b>${round(saltWM,0)} mg/L</b>\nWPS = 100 × ${round(saltWM,0)} ÷ (${round(saltWM,0)} + ${round(v.vw)}×10⁴) = <b>${round(wt,1)}% = ${round(ppm,0)} ppm</b>`,
+      note:'Water Phase Salinity keeps the internal brine at the right activity to balance shale pore-water and stop clay swelling. Typical OBM/NAF targets: CaCl₂ 25–30 wt% (WPS 200–240k ppm), ES the emulsion-stability partner. Verify against your ES and HTHP trend. Use the WPS Adjust tool to raise/lower it.'};
+  }
+});
+def('Chemistry',{
+  id:'wpsadj', name:'WPS Adjust (raise / lower)', icon:'⚗️',
+  desc:'CaCl₂ to RAISE, or fresh water to LOWER, the water-phase salinity of an OBM to a target — accounting for salt purity.',
+  inputs:[
+    {k:'mode',label:'Adjust',unit:'',def:'up',rerender:true,opts:[['up','Raise WPS  (add CaCl₂)'],['down','Lower WPS  (add fresh water)']]},
+    {k:'w1',label:'Present WPS',unit:'% CaCl₂',def:20},
+    {k:'w2',label:'Target WPS',unit:'% CaCl₂',def:25},
+    {k:'vol',label:'Mud volume to treat',unit:'bbl',def:800},
+    {k:'vw',label:'Water — retort',unit:'% by vol',def:23},
+    {k:'purity',label:'CaCl₂ purity (raise only)',unit:'%',def:94,when:v=>v.mode==='up'}
+  ],
+  calc(v){
+    if(v.w1<=0||v.w1>=100||v.w2<=0||v.w2>=100) return {main:{n:'—',v:'—',u:''},rows:[],warn:'WPS values must be between 0 and 100 %.'};
+    const waterBbl=v.vol*v.vw/100;                              // water phase volume
+    const waterLb=waterBbl*350;                                 // fresh water mass (350 lb/bbl)
+    const r=w=> w/(100-w);                                      // CaCl2 : water mass ratio
+    if(v.mode==='up'){
+      if(v.w2<=v.w1) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Target must be higher than present to raise WPS.'};
+      const pureLb=waterLb*(r(v.w2)-r(v.w1));                   // dry CaCl2 (pure) to add
+      const pf=(v.purity>0&&v.purity<=100)?v.purity/100:1;
+      const grossLb=pureLb/pf;
+      return {main:{n:'CaCl₂ to Add',v:round(grossLb,0),u:'lb'},
+        rows:[
+          {k:'Pure CaCl₂ needed',v:round(pureLb,0)+' lb  ('+round(pureLb*0.000453592,2)+' t)'},
+          {k:'Commercial @ '+round(v.purity,0)+'%',v:round(grossLb,0)+' lb  ('+round(grossLb*0.000453592,2)+' t)'},
+          {k:'Sacks (25 kg / 55 lb)',v:round(grossLb/55,0)+' sacks'},
+          {k:'Water phase volume',v:round(waterBbl,1)+' bbl'},
+          {k:'Concentration',v:round(grossLb/v.vol,2)+' lb/bbl of mud'}
+        ],
+        formula:'CaCl₂ (lb) = Water(lb) × [w₂/(100−w₂) − w₁/(100−w₁)]\nWater(lb) = mud vol × water% × 350\nCommercial = pure ÷ purity',
+        steps:`Water = ${round(v.vol,0)} × ${round(v.vw)}% × 350 = <b>${round(waterLb,0)} lb</b>\nCaCl₂ = ${round(waterLb,0)} × (${round(r(v.w2),3)}−${round(r(v.w1),3)}) = <b>${round(pureLb,0)} lb pure</b>`,
+        note:'Add dry CaCl₂ slowly through the hopper into a well-emulsified system; let it dissolve in the water phase, then re-check ES and HTHP. Raising WPS increases inhibition but too high drops water activity below the shale and can dehydrate/embrittle it.'};
+    }
+    // lower — add fresh water
+    if(v.w2>=v.w1) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Target must be lower than present to lower WPS.'};
+    const saltLb=waterLb*r(v.w1);                              // CaCl2 mass (constant)
+    const water2=saltLb/r(v.w2);                               // required water mass at target
+    const addLb=water2-waterLb, addBbl=addLb/350;
+    return {main:{n:'Fresh Water to Add',v:round(addBbl,1),u:'bbl'},
+      rows:[
+        {k:'Water to add',v:round(addLb,0)+' lb  ('+round(addBbl,1)+' bbl)'},
+        {k:'CaCl₂ held constant',v:round(saltLb,0)+' lb'},
+        {k:'New water-phase volume',v:round((waterLb+addLb)/350,1)+' bbl'},
+        {k:'Note',v:'re-emulsify & add wetting agent'}
+      ],
+      formula:'Water to add (lb) = CaCl₂ ÷ [w₂/(100−w₂)] − present water(lb)\nCaCl₂ = present water × w₁/(100−w₁)',
+      steps:`CaCl₂ = ${round(waterLb,0)} × ${round(r(v.w1),3)} = <b>${round(saltLb,0)} lb</b>\nWater needed = ${round(saltLb,0)} ÷ ${round(r(v.w2),3)} = ${round(water2,0)} lb → add <b>${round(addBbl,1)} bbl</b>`,
+      note:'Adding water lowers WPS but also lowers OWR and ES — add primary emulsifier & wetting agent and likely weight material to hold MW. Prefer diluting with pre-mixed low-salinity brine over raw water when a big drop is needed.'};
+  }
+});
+def('Solids',{
+  id:'ooc', name:'Oil on Cuttings (retention & loss)', icon:'🛢️',
+  desc:'Retort-of-cuttings oil retention (ROC % by weight) plus daily base-oil lost with cuttings and its cost.',
+  inputs:[
+    {k:'oilv',label:'Oil on cuttings — retort',unit:'% by vol',def:12},
+    {k:'solv',label:'Solids on cuttings — retort',unit:'% by vol',def:80},
+    {k:'oilsg',label:'Base-oil SG',unit:'',def:0.80},
+    {k:'cutsg',label:'Cuttings SG',unit:'',def:2.60},
+    {k:'dh',label:'Hole diameter',unit:'in',def:8.5},
+    {k:'rop',label:'ROP (avg)',unit:'ft/hr',def:40},
+    {k:'price',label:'Base-oil price',unit:'/bbl',def:110}
+  ],
+  calc(v){
+    const oilMass=v.oilv*v.oilsg, solMass=v.solv*v.cutsg;
+    const roc = (oilMass+solMass)>0? 100*oilMass/(oilMass+solMass) : 0;   // % oil by weight (retained-oil-on-cuttings)
+    const cutBblDay=(v.dh*v.dh)/K.CAP*v.rop*24;                            // in-situ cuttings bbl/day
+    const oilBblDay = v.solv>0? cutBblDay*(v.oilv/v.solv) : 0;             // base oil clinging, bbl/day
+    const costDay=oilBblDay*v.price;
+    const limit = roc<6.9?'Within 6.9% retort limit (OSPAR)':'Above 6.9% — improve cuttings dryer / drilling detergent';
+    return {main:{n:'Oil Retention (ROC)',v:round(roc,1),u:'% by wt'},
+      rows:[
+        {k:'Base oil lost with cuttings',v:round(oilBblDay,2)+' bbl/day  ('+round(oilBblDay*42,0)+' gal/day)'},
+        {k:'Cuttings generated',v:round(cutBblDay,1)+' bbl/day'},
+        {k:'Base-oil cost lost',v:round(costDay,0)+' /day  ('+round(costDay*30,0)+' /month)'},
+        {k:'Oil : solids (retort)',v:round(v.oilv,0)+' : '+round(v.solv,0)+' by vol'},
+        {k:'Discharge check',v:limit}
+      ],
+      formula:'ROC (%wt) = 100 × (Oilᵥ×SGₒ) ÷ (Oilᵥ×SGₒ + Solidsᵥ×SGc)\nOil lost = cuttings vol × (Oil% ÷ Solids%)\nCuttings (bbl/day) = Dh²÷1029.4 × ROP × 24',
+      steps:`ROC = 100 × (${round(v.oilv)}×${round(v.oilsg,2)}) ÷ (${round(v.oilv)}×${round(v.oilsg,2)} + ${round(v.solv)}×${round(v.cutsg,2)}) = <b>${round(roc,1)}%</b>\nOil lost = ${round(cutBblDay,1)} × ${round(v.oilv)}/${round(v.solv)} = <b>${round(oilBblDay,2)} bbl/day</b>`,
+      note:'Retort a washed, dried cuttings sample to get oil/water/solids. ROC (oil retained per weight of cuttings) drives NAF discharge compliance where allowed (OSPAR ≤ 6.9% by wt on dry cuttings). In Kuwait land wells cuttings are skipped/hauled — here the value is tracking BASE-OIL LOSS & cost, and flagging poor cuttings-dryer / shaker performance or over-oily mud. Reduce with a cuttings dryer, finer screens, wetting-agent balance and lower OWR where possible.'};
+  }
+});
+def('Basics',{
+  id:'recparams', name:'Recommended Mud Parameters', icon:'✅',
+  desc:'Pick a mud system + hole section and get the recommended property ranges and hole-cleaning targets (KOC N&WK practice).',
+  inputs:[
+    {k:'sys',label:'Mud System',unit:'',def:'obm7030',opts:[
+      ['spud','Spud Mud (WBM)'],['gelpoly','Gel Polymer (WBM)'],['kclpoly','KCl / NaCl Polymer (WBM)'],
+      ['obm7030','OBM 70/30 OWR'],['obm8020','OBM 80/20 OWR'],['obm955','ND OBM 95/5 OWR']]},
+    {k:'hole',label:'Hole Section',unit:'',def:'12.25',opts:[['16','16"'],['12.25','12¼"'],['8.5','8½"'],['6.125','6⅛"']]},
+    {k:'mw',label:'Planned Mud Weight',unit:'ppg',def:12.5}
+  ],
+  calc(v){
+    const SYS={
+      spud:{n:'Spud Mud (WBM)',mw:'8.5 – 9.6',rows:[['Funnel viscosity','45 – 65 s/qt'],['PV','ALAP (≈10–15 cP)'],['YP','20 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 8–25'],['API fluid loss','N/C'],['Bentonite','10 – 20 ppb'],['pH','9.0 – 10.5'],['Chlorides','drill-water salinity']]},
+      gelpoly:{n:'Gel Polymer (WBM)',mw:'8.7 – 9.2',rows:[['Funnel viscosity','35 – 60 s/qt'],['PV','ALAP (≈10–15 cP)'],['YP','8 – 15 lb/100ft²'],['Gels 10s/10m','3–10 / 4–15'],['API fluid loss','8 – 12 cc (from Sadi)'],['MBT','< 5 – 10 ppb'],['Ca²⁺','< 400 mg/L'],['pH','9.0 – 10.5']]},
+      kclpoly:{n:'KCl / NaCl Polymer (WBM)',mw:'as hole dictates',rows:[['Funnel viscosity','40 – 60 s/qt'],['PV','ALAP'],['YP','12 – 20 lb/100ft²'],['LSYP','> 5'],['Gels 10s/10m','6–10 / 8–15'],['API fluid loss','< 6 cc'],['KCl','5 – 7 %'],['pH','9.0 – 10.5'],['Ca²⁺','< 400 mg/L']]},
+      obm7030:{n:'OBM 70/30 OWR',mw:'as hole dictates',rows:[['Funnel viscosity','45 – 70 s/qt'],['PV','ALAP'],['YP','12 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 7–25'],['LSYP','6 – 8'],['HTHP fluid loss','< 5 cc/30min'],['O/W ratio','70 / 30'],['ES','> 500 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','200 – 220k ppm']]},
+      obm8020:{n:'OBM 80/20 OWR',mw:'as hole dictates',rows:[['Funnel viscosity','45 – 70 s/qt'],['PV','ALAP'],['YP','12 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 7–25'],['LSYP','6 – 8'],['HTHP fluid loss','< 4 cc/30min'],['O/W ratio','80 / 20'],['ES','≥ 800 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','220 – 240k ppm']]},
+      obm955:{n:'ND OBM 95/5 OWR',mw:'9.2 – 9.7',rows:[['Funnel viscosity','as planned rheology'],['PV','ALAP'],['YP','12 – 14 lb/100ft²'],['Gels 10s/10m','6–15 / 7–22'],['LSYP','> 5'],['HTHP fluid loss','4 – 5 cc/30min'],['O/W ratio','95 / 5'],['ES','> 1000 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','200 – 220k ppm']]}
+    };
+    const FLOW={'16':{q:'1100 – 1300 gpm',rpm:'150',av:'> 110 ft/min',fac:'Zone I 1.7× / II 2.5× / III 3.0× B/U'},
+      '12.25':{q:'800 – 1100 gpm',rpm:'120 – 150',av:'> 150 ft/min',fac:'Zone I 1.4× / II 1.8× / III 2.0× B/U'},
+      '8.5':{q:'600 – 700 gpm',rpm:'100 – 120',av:'> 180 ft/min',fac:'Zone I 1.4× / II 1.6× / III 1.7× B/U'},
+      '6.125':{q:'300 – 400 gpm',rpm:'70 – 80',av:'> 200 ft/min',fac:'Zone I 1.4× / II 1.5× / III 1.6× B/U'}};
+    const s=SYS[v.sys], hc=FLOW[v.hole];
+    const holeName={'16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'}[v.hole];
+    const rows=[{k:'Mud weight',v:s.mw+' ppg'+(v.mw?'  (planned '+round(v.mw,1)+')':'')}, ...s.rows.map(r=>({k:r[0],v:r[1]})),
+      {k:'— Hole cleaning ('+holeName+') —',v:''},
+      {k:'Recommended flow rate',v:hc.q},
+      {k:'Pipe rotation',v:hc.rpm+' rpm'},
+      {k:'Annular velocity',v:hc.av},
+      {k:'Circulate before trip',v:hc.fac}];
+    return {main:{n:s.n,v:holeName,u:'section'},
+      rows,
+      formula:'Recommended KOC N&WK (Team-II) drilling-fluid property window for the selected system & hole size, with hole-cleaning targets by inclination zone (I 0–40°, II 40–60°, III 60°+).',
+      steps:`System: <b>${s.n}</b> · Section: <b>${holeName}</b> · MW range <b>${s.mw} ppg</b>`,
+      note:'Ranges reflect the mud proposals for this field (guidance, not a substitute for the well-specific program or KOC instructions). "ALAP/ASAP" = keep PV as low as practical. LSYP = 6-rpm-based low-shear yield for hole cleaning. Confirm mud weight with the KOC representative; raise gradually across reactive shales.'};
   }
 });
 
