@@ -1,5 +1,5 @@
 /* Mud Engineer Pro — service worker (network-first so updates always win; cache = offline fallback) */
-const CACHE = 'mudeng-pro-v13';
+const CACHE = 'mudeng-pro-v14';
 const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-maskable.svg'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

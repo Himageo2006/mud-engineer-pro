@@ -2491,7 +2491,7 @@ const app = {
            {label:'DP × Open Hole', hole:8.5, pipe:5, len:5000},
            {label:'DC × Open Hole', hole:8.5, pipe:6.5, len:1000} ]
   }),
-  dmr: lsGet('mep_dmr', {
+  dmr: Object.assign({
     company:'CPVEN', well:'', rig:'', repno:'', date:'', operator:'KOC', contractor:'', field:'', formation:'', engineer:'',
     activity:'Drilling', mudtype:'OBM 70/30', md:10000, tvd:9500, inc:0, azi:0, bitdepth:10000,
     bit:8.5, noz:[12,12,12,0,0,0], flow:600, liner:6.5, stroke:12, eff:95, spm:60,
@@ -2510,7 +2510,7 @@ const app = {
             {name:'Sulphonated Asphalt', unit:'sx', size:100, qty:13, price:18} ],
     // reported values for VERIFY mode (blank = generate mode)
     vPV:'', vYP:'', vLSYP:'', vOWR:'', vWPS:'', vAV:'', vECD:'', vBU:'', vBitdp:''
-  }),
+  }, lsGet('mep_dmr', {})),
   prop: lsGet('mep_prop', {
     company:'CPVEN', well:'', rig:'', field:'', operator:'Kuwait Oil Company (KOC)', objective:'', welltype:'', propno:'', date:'', preparedBy:'', approvedBy:'',
     secs:[
