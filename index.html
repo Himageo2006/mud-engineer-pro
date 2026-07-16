@@ -1967,7 +1967,7 @@ def('Chemistry',{
   ],
   calc(v){
     if(v.vw<=0) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Retort water must be greater than zero.'};
-    const f = v.salt==='NACL'? 1.6486 : 1.5643;                 // salt/2Cl mass ratio
+    const f = v.salt==='NACL'? 1.6485 : 1.565;                  // salt/2Cl mass ratio (CaCl₂ 110.98/70.91=1.5652, field/API rounds to 1.565)
     const name = v.salt==='NACL'? 'NaCl' : 'CaCl₂';
     const saltWM = v.cl*f;                                       // mg/L whole mud
     const wt = 100*saltWM/(saltWM + v.vw*1e4);                   // wt% of the water (brine) phase
@@ -1986,7 +1986,7 @@ def('Chemistry',{
       ],
       formula:name+' (mg/L) = Cl⁻ × '+f+'\nWPS (wt%) = 100 × '+name+'(mg/L) ÷ ['+name+'(mg/L) + Water%×10⁴]\nWPS (ppm) = wt% × 10⁴',
       steps:`${name} = ${round(v.cl,0)} × ${f} = <b>${round(saltWM,0)} mg/L</b>\nWPS = 100 × ${round(saltWM,0)} ÷ (${round(saltWM,0)} + ${round(v.vw)}×10⁴) = <b>${round(wt,1)}% = ${round(ppm,0)} ppm</b>`,
-      note:'Water Phase Salinity keeps the internal brine at the right activity to balance shale pore-water and stop clay swelling. Typical OBM/NAF targets: CaCl₂ 25–30 wt% (WPS 200–240k ppm), ES the emulsion-stability partner. Verify against your ES and HTHP trend. Use the WPS Adjust tool to raise/lower it.'};
+      note:'Method — the field two-value calc (whole-mud chloride + retort water): salt(mg/L) = Cl⁻ × '+f+' (CaCl₂ 110.98/70.91 = 1.5652, API/MUDPRO+ round to 1.565; NaCl 1.6485), then wt% is the salt mass over brine mass (salt + retort water), and ppm = wt%×10⁴ (mg/kg of brine). Matches CPVEN & SCOMI DMRs exactly (39000 mg/L, 23% → 21 %, 209,717 ppm). Uses the retort water directly — for salt-corrected solids & brine content use the full API RP 13B-2 iteration.\n\nWater Phase Salinity keeps the internal brine at the right activity to balance shale pore-water and stop clay swelling. Typical OBM/NAF targets: CaCl₂ 25–30 wt% (WPS 200–240k ppm); ES is the emulsion-stability partner. Use the WPS Adjust tool to raise/lower it.'};
   }
 });
 def('Chemistry',{
@@ -2962,7 +2962,7 @@ const app = {
     // ---- OWR ----
     const ow=d.oil+d.water; const owrO=ow>0?Math.round(100*d.oil/ow):0, owrW=100-owrO;
     // ---- WPS (CaCl2) ----
-    const saltWM=d.chl*1.5643; const wps_wt=d.water>0?100*saltWM/(saltWM+d.water*1e4):0; const wps_ppm=wps_wt*1e4;
+    const saltWM=d.chl*1.565; const wps_wt=d.water>0?100*saltWM/(saltWM+d.water*1e4):0; const wps_ppm=wps_wt*1e4;
     const brineSG=cacl2Interp(wps_wt).sg;
     // ---- solids analysis (mass balance) ----
     const rhoM=d.mw/8.345, fo=d.oil/100, fw=d.water/100, fs=d.solids/100;
