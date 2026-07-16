@@ -107,6 +107,9 @@ strong,b{font-weight:700}
 .btn{border:1px solid var(--line2);background:var(--panel2);color:var(--text);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;font-family:var(--font);font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:var(--accent);color:var(--text);background:var(--panel3);transform:translateY(-1px)}
 .btn.sm{padding:7px 10px;font-size:11.5px;flex:1;justify-content:center}
+.btn.btn-primary{background:var(--accent);border-color:var(--accent);color:#001;font-weight:750;padding:9px 16px;font-size:13px}
+.btn.btn-primary:hover{background:color-mix(in srgb,var(--accent) 85%,#fff);color:#001;box-shadow:0 6px 16px -6px var(--accent)}
+@media print{.btn.btn-primary{display:none!important}}
 /* ---------- Main ---------- */
 .main{overflow-y:auto;min-height:0}
 .main::-webkit-scrollbar{width:12px}.main::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px;border:3px solid transparent;background-clip:padding-box}
@@ -409,9 +412,9 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .rep-head-print{display:none}
 @media(max-width:900px){.pd-row{grid-template-columns:1fr;gap:4px}.pd-row b{text-align:left}}
 @media print{
-  .rep-in,.rep-top .btn,.addbtn,.rtbl .rx{display:none!important}
+  .rep-in,.rep-top,.addbtn,.rtbl .rx{display:none!important}
   .rep{box-shadow:none;border:0;padding:0}
-  #hydout{border-top:0;margin-top:0}
+  #hydout,#dmrout,#propout{border-top:0;margin-top:0;padding-top:0}
   .rep-head-print{display:block!important;font-size:12px;color:#111;border-bottom:1px solid #999;padding-bottom:6px;margin-bottom:12px}
   .rk-v,.turb,.lam{color:#111!important}
 }
@@ -2996,6 +2999,9 @@ const app = {
     'Generic':{title:'Daily Mud Report', sub:'', brand:'Mud Engineer Pro', c:'#3d7bff'}
   },
   dmrSet(k,v){ this.dmr[k]=v; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); if(document.getElementById('dmrout')) this.dmrCompute(); },
+  dmrPdf(){ const d=this.dmr; const nm=('DMR_'+(d.well||'well')+'_'+(d.date||'')+'_'+(d.repno?'No'+d.repno:'')).replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'DMR';
+    const old=document.title; document.title=nm; const restore=()=>{document.title=old; window.removeEventListener('afterprint',restore);};
+    window.addEventListener('afterprint',restore); setTimeout(restore,4000); window.print(); },
   dmrProdRow(i,f,v){ this.dmr.prods[i][f]=(f==='name'||f==='unit')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
   dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,start:0,recv:0,used:0,cum:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDelProd(i){ this.dmr.prods.splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
@@ -3029,8 +3035,8 @@ const app = {
     const vfld=(lbl,id)=>`<div class="rf"><label>${lbl} <span class="vtag">reported</span></label><div class="inp"><input id="d_${id}" value="${d[id]||''}" oninput="app.dmrCompute()" placeholder="from report"/></div></div>`;
     view.innerHTML=`<div class="rep fade">
       <div class="rep-top">
-        <div><h3>${verify?'✔️ DMR Verify':'📋 DMR Generator'}</h3><p>${verify?'Enter the report\'s inputs AND its printed results — the app recomputes every derived value and flags mismatches.':'Enter the day\'s data — the report builds live below. Pick a company style and print for a filed record.'}</p></div>
-        <button class="btn" onclick="window.print()">🖨️ Print / PDF</button>
+        <div><h3>${verify?'✔️ DMR Verify':'📋 DMR Generator'}</h3><p>${verify?'Enter the report\'s inputs AND its printed results — the app recomputes every derived value and flags mismatches.':'Enter the day\'s data — the report builds live below, then generate a PDF for a filed record.'}</p></div>
+        <button class="btn btn-primary" onclick="app.dmrPdf()">📄 Generate DMR (PDF)</button>
       </div>
       <div class="rep-in">
         <div class="rf-sec"><div class="rf-h">Header</div><div class="rf-row">
