@@ -412,11 +412,44 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .rep-head-print{display:none}
 @media(max-width:900px){.pd-row{grid-template-columns:1fr;gap:4px}.pd-row b{text-align:left}}
 @media print{
+  /* force a clean light palette for the whole report */
+  :root{
+    --bg:#fff;--bg-2:#fff;--panel:#fff;--panel2:#fff;--panel3:#eef1f5;
+    --card:#fff;--card-line:#bbb;--card-hover:#fff;--line:#c9d0da;--line2:#b3bcc9;
+    --text:#111;--muted:#333;--faint:#666;
+    --accent:#0a7d55;--accent-d:#0a7d55;--brand:#8a5a00;--brand2:#6a4600;--danger:#b00020;--blue:#1a4fb0;
+    color-scheme:light;
+  }
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff!important;color:#111!important}
+  .side,.topbar,.favbtn,.copybtn,.cardstar,.hero-stats{display:none!important}
+  .main{overflow:visible}.wrap{max-width:100%;padding:0}
   .rep-in,.rep-top,.addbtn,.rtbl .rx{display:none!important}
-  .rep{box-shadow:none;border:0;padding:0}
+  .rep{box-shadow:none;border:0;padding:0;background:#fff}
   #hydout,#dmrout,#propout{border-top:0;margin-top:0;padding-top:0}
   .rep-head-print{display:block!important;font-size:12px;color:#111;border-bottom:1px solid #999;padding-bottom:6px;margin-bottom:12px}
-  .rk-v,.turb,.lam{color:#111!important}
+  /* never clip wide tables when printing */
+  .rtbl-wrap{overflow:visible!important;border:0!important}
+  .rtbl.out{font-size:8.5px}
+  .rtbl.out th{background:#e6eaf0!important;color:#111!important;padding:3px 4px}
+  .rtbl.out td{padding:2px 4px;border-top:1px solid #ccc;color:#111!important}
+  .rtbl.out tbody tr:nth-child(even) td,.rtbl.out tr:nth-child(even) td{background:#f5f6f8!important}
+  .rtbl.out .rtot td{background:#e6eaf0!important;color:#111!important;font-weight:700}
+  .rtbl.out.dmrmud tr.calcrow td,.rtbl.out td.cc{background:#e9f4ee!important;color:#0a5c40!important}
+  .rtbl.out .dv{color:#111!important}
+  tr{page-break-inside:avoid}
+  h4.rep-h{page-break-after:avoid;font-size:11px;margin:10px 0 5px;color:#111}
+  /* tiles + bands */
+  .rgrid{gap:6px}
+  .rk{background:#f3f5f8!important;border:1px solid #bbb;padding:6px 9px}
+  .rk-l{color:#333!important}
+  .rk-v,.rk-v small,.turb,.lam{color:#111!important;-webkit-text-fill-color:#111!important;background:none!important}
+  .dmr-band{background:#f3f5f8!important;border:1px solid #bbb;border-left:4px solid #0a7d55}
+  .dmr-brand{color:#0a5c40!important}
+  .dmr-title span{color:#333!important;border-color:#aaa!important}
+  .dmr-ops,.prop-frame,.psec,.rep-sub{background:#f5f6f8!important;color:#222!important}
+  .pbar{background:#dfe3e8}
+  .pl,.dmr-ops b,.pt{color:#111!important}
 }
 /* Unit Converter */
 .convbody{padding:22px 24px}
@@ -3000,8 +3033,11 @@ const app = {
   },
   dmrSet(k,v){ this.dmr[k]=v; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); if(document.getElementById('dmrout')) this.dmrCompute(); },
   dmrPdf(){ const d=this.dmr; const nm=('DMR_'+(d.well||'well')+'_'+(d.date||'')+'_'+(d.repno?'No'+d.repno:'')).replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'DMR';
-    const old=document.title; document.title=nm; const restore=()=>{document.title=old; window.removeEventListener('afterprint',restore);};
-    window.addEventListener('afterprint',restore); setTimeout(restore,4000); window.print(); },
+    const old=document.title; document.title=nm;
+    let ps=document.getElementById('dmrPageStyle'); if(!ps){ ps=document.createElement('style'); ps.id='dmrPageStyle'; document.head.appendChild(ps); }
+    ps.textContent='@media print{@page{size:A4 landscape;margin:8mm}}';   // wide DMR → landscape
+    const restore=()=>{document.title=old; if(ps&&ps.parentNode)ps.parentNode.removeChild(ps); window.removeEventListener('afterprint',restore);};
+    window.addEventListener('afterprint',restore); setTimeout(restore,5000); window.print(); },
   dmrProdRow(i,f,v){ this.dmr.prods[i][f]=(f==='name'||f==='unit')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
   dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,start:0,recv:0,used:0,cum:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDelProd(i){ this.dmr.prods.splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
