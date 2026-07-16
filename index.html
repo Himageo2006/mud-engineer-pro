@@ -887,11 +887,12 @@ def('Rheology',{
         {k:'Pipe K (consistency)',v:round(Kp,2)+' eq·cP  (dyne·sⁿ/100cm²)'},
         {k:'Annular n',v:round(na,3)},
         {k:'Annular K',v:round(Ka,2)},
-        {k:'Behaviour',v: np<1?'Shear-thinning (pseudoplastic)':'Near-Newtonian'}
+        {k:'Behaviour',v: np<1?'Shear-thinning (pseudoplastic)':'Near-Newtonian'},
+        {k:'Model / reference',v:'API RP 13D two-point power-law'}
       ],
-      formula:'n_pipe = 3.32·log(θ600/θ300)\nK_pipe = 5.11·θ300 ÷ 511ⁿ\nn_ann = 0.657·log(θ100/θ3)',
+      formula:'n_pipe = 3.32·log₁₀(θ600/θ300)      K_pipe = 5.11·θ300 ÷ 511ⁿ\nn_ann = 0.657·log₁₀(θ100/θ3)      K_ann = 5.11·θ100 ÷ 170.2ⁿ',
       steps:`n = 3.32 × log(${round(v.r600)}/${round(v.r300)}) = <b>${round(np,3)}</b>\nK = 5.11×${round(v.r300)} ÷ 511^${round(np,3)} = <b>${round(Kp,2)}</b>`,
-      note:'Lower n = more shear-thinning = better hole cleaning at low annular rates. Use annular n/K for ECD & cuttings transport.'};
+      note:'Lower n = more shear-thinning = better hole cleaning at low annular rates; use the annular n/K for ECD & cuttings transport.\n\nReference — API RP 13D "Rheology and Hydraulics of Oil-well Drilling Fluids" (two-point power-law), also in the M-I SWACO Drilling Fluids Engineering Manual and Baroid Fluids Handbook. Pipe n/K use the θ600/θ300 readings (Fann shear rates 1022 & 511 s⁻¹) → 3.32 = 1 ÷ log₁₀(1022/511). Annular (low-shear) n/K use the θ100/θ3 readings (170.2 & 5.11 s⁻¹) → 0.657 = 1 ÷ log₁₀(170.2/5.11). The 5.11 factor converts a dial unit (lb/100ft²) to dyne·s/cm².'};
   }
 });
 def('Rheology',{
