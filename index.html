@@ -3448,6 +3448,87 @@ const app = {
   propSecRow(i,f,v){ this.prop.secs[i][f]=(['casing','formations','hole','sys'].includes(f))?v:(parseFloat(v)||0); localStorage.setItem('mep_prop',JSON.stringify(this.prop)); this.propCompute(); },
   propAddSec(){ this.prop.secs.push({hole:'12.25',casing:'9⅝"',md:8000,tvd:7500,lastCsg:6000,inc:30,formations:'',sys:'obm7030',mwLo:11,mwHi:12,washout:5,surf:1000,dilF:0.6,unitCost:15}); this.renderProposal(document.getElementById('view')); },
   propDelSec(i){ this.prop.secs.splice(i,1); this.renderProposal(document.getElementById('view')); },
+  propPdf(){
+    const JP=window.jspdf; if(!JP||!JP.jsPDF){ alert('PDF engine not loaded. Open the app online once so it caches, then it works offline.'); return; }
+    const p=this.prop; const R=(n,x=0)=>round(n,x);
+    const doc=new JP.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=14;
+    const AC=[15,94,110], INK=[32,40,48], LN=[201,211,219], LABF=[236,241,245], AMB=[255,199,68];
+    const holeName={'36':'36"','28':'28"','22':'22"','16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'};
+    let y=M;
+    const base={fontSize:8,cellPadding:1.4,textColor:INK,lineColor:LN,lineWidth:0.1,overflow:'linebreak'};
+    const ensure=n=>{ if(y+n>H-14){ doc.addPage(); y=M; } };
+    const bar=t=>{ ensure(10); doc.setFillColor(AC[0],AC[1],AC[2]); doc.rect(M,y,W-2*M,6.4,'F'); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.text(t,M+2.5,y+4.5); y+=8.4; };
+    const sec=(n,t)=>{ ensure(12); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(AC[0],AC[1],AC[2]); doc.text(n+'.   '+t,M,y+4.5); y+=7.5; doc.setDrawColor(AC[0],AC[1],AC[2]); doc.setLineWidth(0.5); doc.line(M,y,W-M,y); y+=3.5; };
+    const tbl=o=>{ doc.autoTable(Object.assign({startY:y,margin:{left:M,right:M},theme:'grid',styles:base,headStyles:{fillColor:AC,textColor:255,fontStyle:'bold',fontSize:8},alternateRowStyles:{fillColor:[245,248,250]}},o)); y=doc.lastAutoTable.finalY+4; };
+    const kv=o=>tbl(Object.assign({columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:52},1:{cellWidth:'auto'}}},o));
+    const para=(t,sz)=>{ doc.setFont('helvetica','normal'); doc.setFontSize(sz||8.5); doc.setTextColor(INK[0],INK[1],INK[2]); const ls=doc.splitTextToSize(t,W-2*M); ensure(ls.length*4+2); doc.text(ls,M,y+3); y+=ls.length*4+3; };
+    const bullets=arr=>{ doc.setFont('helvetica','normal'); doc.setFontSize(8.4); doc.setTextColor(INK[0],INK[1],INK[2]); arr.forEach(b=>{ const ls=doc.splitTextToSize(b,W-2*M-5); ensure(ls.length*4+1); doc.text('•',M+1,y+3); doc.text(ls,M+5,y+3); y+=ls.length*4+1.6; }); y+=2; };
+    // ===== COVER =====
+    doc.setFillColor(AC[0],AC[1],AC[2]); doc.rect(0,0,W,6,'F'); doc.rect(0,H-6,W,6,'F');
+    doc.setFillColor(AMB[0],AMB[1],AMB[2]); doc.rect(0,6,W,1.4,'F');
+    let cy=78; doc.setTextColor(AC[0],AC[1],AC[2]); doc.setFont('helvetica','bold'); doc.setFontSize(30);
+    doc.text('DRILLING FLUIDS',W/2,cy,{align:'center'}); doc.text('PROGRAM',W/2,cy+14,{align:'center'});
+    doc.setDrawColor(AMB[0],AMB[1],AMB[2]); doc.setLineWidth(1.2); doc.line(W/2-42,cy+21,W/2+42,cy+21);
+    cy+=40; doc.setTextColor(INK[0],INK[1],INK[2]); doc.setFontSize(17); doc.text('Well: '+(p.well||'—'),W/2,cy,{align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(13);
+    if(p.field){ cy+=9; doc.text(p.field+(/field/i.test(p.field)?'':' Field'),W/2,cy,{align:'center'}); }
+    if(p.objective){ cy+=9; const ls=doc.splitTextToSize('Objective: '+p.objective,W-2*M-24); doc.text(ls,W/2,cy,{align:'center'}); cy+=ls.length*6; }
+    cy+=4; doc.setFontSize(12); doc.text(p.date||'',W/2,cy,{align:'center'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(AC[0],AC[1],AC[2]); doc.text('Submitted to',W/2,H-74,{align:'center'});
+    doc.setFontSize(15); doc.text('Kuwait Oil Company (KOC)',W/2,H-66,{align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(INK[0],INK[1],INK[2]); doc.text('Drilling Department',W/2,H-59,{align:'center'});
+    doc.setFontSize(10); doc.text(('Proposal No. '+(p.propno||'—'))+(p.welltype?'      Well type: '+p.welltype:''),W/2,H-48,{align:'center'});
+    // ===== PROPOSAL INFORMATION =====
+    doc.addPage(); y=M; bar('DRILLING FLUIDS PROPOSAL');
+    kv({ body:[ ['Client name',p.operator||'Kuwait Oil Company (KOC)'],['Objective',p.objective||''],['Field',p.field||''],['Well name',p.well||''],['Well type',p.welltype||''],['Rig name',p.rig||''],['Proposal number',p.propno||''],['Date issued',p.date||''] ] });
+    tbl({ head:[['Role','Name','Contact']], body:[ ['Prepared by',p.preparedBy||'',''],['Approved by',p.approvedBy||'',''],['KOC approval','',''] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:38}} });
+    // ===== PROJECT SUMMARY =====
+    doc.addPage(); y=M; sec('1','Project Summary');
+    let n=1, totCost=0;
+    const sumRows=p.secs.map(s=>{ const sy=MUDSYS[s.sys]||MUDSYS.obm7030; const dia=parseFloat(s.hole)||8.5, ohLen=Math.max(0,s.md-s.lastCsg), holeCap=dia*dia/1029.4, ohVol=holeCap*ohLen*(1+s.washout/100), dilVol=s.dilF*ohLen, totVol=ohVol+(s.surf||0)+dilVol, cost=totVol*(s.unitCost||0); totCost+=cost; return [holeName[s.hole]||s.hole, s.casing, R(s.md)+' / '+R(s.tvd), R(s.inc)+'°', sy.n+'  '+R(s.mwLo,1)+'–'+R(s.mwHi,1)+' ppg', s.formations||'']; });
+    tbl({ head:[['Hole','Casing','MD / TVD (ft)','Max inc','Mud system & weight','Formations']], body:sumRows.concat([['','','','','Total estimated mud cost',R(totCost)+' KWD']]),
+      columnStyles:{0:{fontStyle:'bold'},4:{cellWidth:52},5:{cellWidth:44}}, styles:Object.assign({},base,{fontSize:7.4}),
+      didParseCell:h=>{ if(h.section==='body'&&h.row.index===sumRows.length){ h.cell.styles.fillColor=[224,232,240]; h.cell.styles.fontStyle='bold'; } } });
+    // ===== PER-SECTION =====
+    p.secs.forEach((s,i)=>{ const sy=MUDSYS[s.sys]||MUDSYS.obm7030; const dia=parseFloat(s.hole)||8.5, ohLen=Math.max(0,s.md-s.lastCsg), holeCap=dia*dia/1029.4, ohVol=holeCap*ohLen*(1+s.washout/100), dilVol=s.dilF*ohLen, totVol=ohVol+(s.surf||0)+dilVol, cost=totVol*(s.unitCost||0);
+      const zone=s.inc<40?'Zone I (vertical)':s.inc<60?'Zone II (transition)':'Zone III (high-angle)';
+      doc.addPage(); y=M; sec(String(i+2), (holeName[s.hole]||s.hole)+' Hole Section — '+sy.n);
+      kv({ body:[ ['Hole – Casing size',(holeName[s.hole]||s.hole)+'  /  '+s.casing],['Casing depth',R(s.md)+"' MD  /  "+R(s.tvd)+"' TVD"],['Open-hole length',R(ohLen)+' ft'],['Max inclination',R(s.inc)+'°  ('+zone+')'],['Mud system',sy.n],['Mud weight',R(s.mwLo,1)+' – '+R(s.mwHi,1)+' ppg'],['Formations',s.formations||''] ] });
+      bar('Drilling Fluid Properties');
+      tbl({ head:[['Property','Target specification']], body:[['Mud weight',sy.mw==='as hole dictates'?R(s.mwLo,1)+' – '+R(s.mwHi,1)+' ppg':sy.mw+' ppg'],...sy.props.map(r=>[r[0],r[1]])], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:60}} });
+      bar('Drilling Fluid Additives');
+      tbl({ head:[['Chemical / product','Function','Concentration']], body:sy.adds.map(a=>[a[0],a[1],a[2]]), columnStyles:{0:{cellWidth:70}} });
+      bar('Volume & Cost');
+      tbl({ body:[['Open-hole volume (+'+R(s.washout)+'% washout)',R(ohVol)+' bbl'],['Dilution ('+R(s.dilF,2)+' bbl/ft × '+R(ohLen)+' ft)',R(dilVol)+' bbl'],['Surface / active',R(s.surf)+' bbl'],['Total interval volume',R(totVol)+' bbl'],['Estimated interval cost @ '+R(s.unitCost,2)+' KWD/bbl',R(cost)+' KWD']], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:90},1:{halign:'right'}} });
+    });
+    // ===== APPENDICES =====
+    doc.addPage(); y=M; sec(String(p.secs.length+2),'Hole Cleaning Recommendations');
+    para('Zones by inclination: Zone I 0–40° · Zone II 40–60° · Zone III 60°+. Pump at the maximum flow allowed by surface pressure; use annular velocity as the hole-cleaning indicator in deviated hole. Keep PV as low as practical (ALAP) for a flatter profile and raise the low-shear (6-rpm) yield for cuttings transport.');
+    tbl({ head:[['Hole size','Pump rate','Pipe rotation','Annular velocity','Circulate before trip (×B/U)']], body:[
+      ['16"','1100 – 1300 gpm','150 rpm','> 110 ft/min','I 1.7 / II 2.5 / III 3.0'],
+      ['12¼"','800 – 1100 gpm','120 – 150 rpm','> 150 ft/min','I 1.4 / II 1.8 / III 2.0'],
+      ['8½"','600 – 700 gpm','100 – 120 rpm','> 180 ft/min','I 1.4 / II 1.6 / III 1.7'],
+      ['6⅛"','300 – 400 gpm','70 – 80 rpm','> 200 ft/min','I 1.4 / II 1.5 / III 1.6'] ] });
+    sec(String(p.secs.length+3),'Formation Bridging (Calcium Carbonate)');
+    para('Treat the whole system with sized Calcium Carbonate to bridge depleted zones (consider the target mud weight first). Recommended ≈ 25 ppb. Add fine CaCO₃ ~5 lb/bbl per tour to maintain particle-size distribution; use the Kaeuffer / √-PSD rule versus the pore-throat size.');
+    tbl({ head:[['Particle size','Concentration (ppb)']], body:[['Coarse','0'],['Medium','10'],['Fine','15']], columnStyles:{0:{fontStyle:'bold',fillColor:LABF}} });
+    sec(String(p.secs.length+4),'Lost Circulation');
+    tbl({ head:[['Severity','Recommended treatment']], body:[
+      ['Seepage (< 20 bbl/hr)','Treat active system: 6 ppb graphite/PO + 6 ppb CaCO₃(M) + 6 ppb LCM(F) + 4–8 ppb sulphonated asphalt'],
+      ['Partial (20 – 50 bbl/hr)','100 ppb LCM pill on top of loss zone — 20% mica(F) / 40% mica(M)+walnut(M)+cotton seed / 40% mica(C)+walnut(C)'],
+      ['Severe (> 50 bbl/hr)','200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. KOC approval before mixing.'] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:40}} });
+    sec(String(p.secs.length+5),'Stuck-pipe Free Pill (per 50 bbl)');
+    tbl({ head:[['Density (ppg)','Diesel (bbl)','Spotting surfactant (drum)','Water (bbl)','Barite (lb)']], body:[['8','29','3','15','1925'],['10','27','3','14','6600'],['12','26','3','11','11750'],['14','26','3','7','17650'],['16','25','3','5','22750']], bodyStyles:{halign:'right'}, columnStyles:{0:{fontStyle:'bold'}} });
+    para('Cover 100 ft of annulus above the free point + 10%; add 3–4 gal/bbl spotting surfactant; soak 30 min under tension, working the pipe while pumping 1–2 bbl/30 min.');
+    sec(String(p.secs.length+6),'Completion / Displacement Train');
+    bullets(['WBM → Caustic Soda pill 30–50 bbl · Detergent pill 30–50 · Hi-Vis pill 30–50 · Completion brine (0.2 ppg over reservoir pressure).','OBM → Diesel pill 30–50 bbl · Surfactant pill 30–50 · Hi-Vis pill 30–50 · Completion brine. Ensure tanks are clean before mixing.']);
+    // footers
+    const pc=doc.internal.getNumberOfPages();
+    for(let i=2;i<=pc;i++){ doc.setPage(i); doc.setFontSize(7); doc.setTextColor(140); doc.setFont('helvetica','normal'); doc.text('Drilling Fluids Program  ·  '+(p.well||''),M,H-8); doc.text('Page '+i+' / '+pc,W-M,H-8,{align:'right'}); }
+    const nm=('Mud_Proposal_'+(p.well||'well')+'_'+(p.propno?'No'+p.propno:'')).replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'Mud_Proposal';
+    doc.save(nm+'.pdf');
+  },
   renderProposal(view){
     const p=this.prop; const co=this.dmrCos[p.company]||this.dmrCos.Generic;
     const T=(lbl,id,ph)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="p_${id}" value="${p[id]||''}" oninput="app.propSet('${id}',this.value)" placeholder="${ph||'—'}"/></div></div>`;
@@ -3471,8 +3552,8 @@ const app = {
         <div class="rf" style="flex:3"><label>Formations</label><div class="inp"><input class="ri" value="${s.formations}" oninput="app.propSecRow(${i},'formations',this.value)"/></div></div>
       </div></div>`).join('');
     view.innerHTML=`<div class="rep fade">
-      <div class="rep-top"><div><h3>📑 Mud Proposal Generator</h3><p>Enter the well data and add a section per hole size — the app builds the full drilling-fluids program with property specs, additives, volumes, cost and standard appendices. Print for submission.</p></div>
-        <button class="btn" onclick="window.print()">🖨️ Print / PDF</button></div>
+      <div class="rep-top"><div><h3>📑 Mud Proposal Generator</h3><p>Enter the well data and add a section per hole size — then generate a full drilling-fluids program PDF with property specs, additives, volumes, cost and standard appendices.</p></div>
+        <button class="btn btn-primary" onclick="app.propPdf()">📄 Generate Proposal (PDF)</button></div>
       <div class="rep-in">
         <div class="rf-sec"><div class="rf-h">Cover &amp; header</div><div class="rf-row">
           <div class="rf"><label>Company style</label><div class="inp"><select id="p_company" onchange="app.propSet('company',this.value)">${Object.keys(this.dmrCos).map(k=>`<option ${p.company===k?'selected':''}>${k}</option>`).join('')}</select></div></div>
