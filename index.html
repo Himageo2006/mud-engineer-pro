@@ -2077,7 +2077,7 @@ def('Basics',{
     {k:'sys',label:'Mud System',unit:'',def:'obm7030',opts:[
       ['spud','Spud Mud (WBM)'],['gelpoly','Gel Polymer (WBM)'],['kclpoly','KCl / NaCl Polymer (WBM)'],
       ['obm7030','OBM 70/30 OWR'],['obm8020','OBM 80/20 OWR'],['obm955','ND OBM 95/5 OWR']]},
-    {k:'hole',label:'Hole Section',unit:'',def:'12.25',opts:[['16','16"'],['12.25','12¼"'],['8.5','8½"'],['6.125','6⅛"']]},
+    {k:'hole',label:'Hole Section',unit:'',def:'12.25',opts:[['36','36"'],['28','28"'],['22','22"'],['16','16"'],['12.25','12¼"'],['8.5','8½"'],['6.125','6⅛"']]},
     {k:'mw',label:'Planned Mud Weight',unit:'ppg',def:12.5}
   ],
   calc(v){
@@ -2089,23 +2089,36 @@ def('Basics',{
       obm8020:{n:'OBM 80/20 OWR',mw:'as hole dictates',rows:[['Funnel viscosity','45 – 70 s/qt'],['PV','ALAP'],['YP','12 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 7–25'],['LSYP','6 – 8'],['HTHP fluid loss','< 4 cc/30min'],['O/W ratio','80 / 20'],['ES','≥ 800 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','220 – 240k ppm']]},
       obm955:{n:'ND OBM 95/5 OWR',mw:'9.2 – 9.7',rows:[['Funnel viscosity','as planned rheology'],['PV','ALAP'],['YP','12 – 14 lb/100ft²'],['Gels 10s/10m','6–15 / 7–22'],['LSYP','> 5'],['HTHP fluid loss','4 – 5 cc/30min'],['O/W ratio','95 / 5'],['ES','> 1000 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','200 – 220k ppm']]}
     };
-    const FLOW={'16':{q:'1100 – 1300 gpm',rpm:'150',av:'> 110 ft/min',fac:'Zone I 1.7× / II 2.5× / III 3.0× B/U'},
+    const FLOW={
+      '36':{q:'800 – 1000 gpm (pump-limited)',rpm:'50 – 70',av:'low — rely on PHB hi-vis sweeps',fac:'Sweep every stand; circulate ≥ 1.5× B/U'},
+      '28':{q:'900 – 1100 gpm (pump-limited)',rpm:'50 – 70',av:'low — rely on PHB hi-vis sweeps',fac:'Sweep every stand; circulate ≥ 1.5× B/U'},
+      '22':{q:'1000 – 1200 gpm (pump-limited)',rpm:'60 – 80',av:'> 100 ft/min + PHB sweeps',fac:'Zone I 1.7× B/U; sweep every stand'},
+      '16':{q:'1100 – 1300 gpm',rpm:'150',av:'> 110 ft/min',fac:'Zone I 1.7× / II 2.5× / III 3.0× B/U'},
       '12.25':{q:'800 – 1100 gpm',rpm:'120 – 150',av:'> 150 ft/min',fac:'Zone I 1.4× / II 1.8× / III 2.0× B/U'},
       '8.5':{q:'600 – 700 gpm',rpm:'100 – 120',av:'> 180 ft/min',fac:'Zone I 1.4× / II 1.6× / III 1.7× B/U'},
       '6.125':{q:'300 – 400 gpm',rpm:'70 – 80',av:'> 200 ft/min',fac:'Zone I 1.4× / II 1.5× / III 1.6× B/U'}};
-    const s=SYS[v.sys], hc=FLOW[v.hole];
-    const holeName={'16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'}[v.hole];
-    const rows=[{k:'Mud weight',v:s.mw+' ppg'+(v.mw?'  (planned '+round(v.mw,1)+')':'')}, ...s.rows.map(r=>({k:r[0],v:r[1]})),
+    // which hole sections each mud system is normally used on (KOC N&WK)
+    const USE={spud:['36','28','22'], gelpoly:['22','16'], kclpoly:['16','8.5','6.125'], obm7030:['12.25','8.5'], obm8020:['16','12.25','8.5','6.125'], obm955:['6.125','8.5']};
+    const holeMap={'36':'36"','28':'28"','22':'22"','16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'};
+    const s=SYS[v.sys], hc=FLOW[v.hole], holeName=holeMap[v.hole];
+    const fit=USE[v.sys].includes(v.hole);
+    const usual=USE[v.sys].map(h=>holeMap[h]).join(' / ');
+    // which systems typically run on this hole
+    const holeSys=Object.keys(USE).filter(k=>USE[k].includes(v.hole)).map(k=>SYS[k].n).join(', ');
+    const rows=[
+      {k:'Mud weight',v:s.mw+' ppg'+(v.mw?'  (planned '+round(v.mw,1)+')':'')}, ...s.rows.map(r=>({k:r[0],v:r[1]})),
       {k:'— Hole cleaning ('+holeName+') —',v:''},
       {k:'Recommended flow rate',v:hc.q},
       {k:'Pipe rotation',v:hc.rpm+' rpm'},
       {k:'Annular velocity',v:hc.av},
-      {k:'Circulate before trip',v:hc.fac}];
+      {k:'Circulate before trip',v:hc.fac},
+      {k:'Typical systems for '+holeName,v:holeSys||'—'}];
     return {main:{n:s.n,v:holeName,u:'section'},
       rows,
+      warn: fit? undefined : s.n+' is normally used only on the '+usual+' section'+(USE[v.sys].length>1?'s':'')+' — showing its spec anyway for '+holeName+'.',
       formula:'Recommended KOC N&WK (Team-II) drilling-fluid property window for the selected system & hole size, with hole-cleaning targets by inclination zone (I 0–40°, II 40–60°, III 60°+).',
       steps:`System: <b>${s.n}</b> · Section: <b>${holeName}</b> · MW range <b>${s.mw} ppg</b>`,
-      note:'Ranges reflect the mud proposals for this field (guidance, not a substitute for the well-specific program or KOC instructions). "ALAP/ASAP" = keep PV as low as practical. LSYP = 6-rpm-based low-shear yield for hole cleaning. Confirm mud weight with the KOC representative; raise gradually across reactive shales.'};
+      note:'Spud Mud is used on the surface 36″/28″/22″ holes; Gel/KCl-Polymer WBM on the intermediate holes; OBM/NAF on the deviated & reservoir sections. Ranges reflect the field mud proposals (guidance, not a substitute for the well-specific program or KOC instructions). "ALAP" = keep PV as low as practical; LSYP = 6-rpm low-shear yield. Confirm mud weight with the KOC representative; raise gradually across reactive shales.'};
   }
 });
 
