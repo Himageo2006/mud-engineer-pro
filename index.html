@@ -530,7 +530,8 @@ const CALCICON = {
   phmw:'gauge',convert:'swap',
   weightup:'scale',dilute:'droplet',mix2:'mix',startvol:'cylinder',buoy:'scale',mudbuild:'layers',yield:'droplet',
   capacity:'ruler',pump:'pump',annvel:'wind',slug:'droplet',tank:'cylinder',
-  bithyd:'nozzle',presloss:'wind',critvel:'gauge',surge:'trend',
+  bithyd:'nozzle',presloss:'wind',critvel:'gauge',surge:'trend',cuttings:'layers',
+  pilot:'flask',tripfill:'cylinder',circtime:'clock',displace:'bricks',
   bingham:'activity',powerlaw:'wave',ecd:'gauge',
   retort:'layers',mbt:'flask',diln:'droplet',sag:'trend',
   alkalinity:'flask',chlorides:'crystal',hardness:'crystal',owr:'droplet',owradj:'mix',
@@ -1735,6 +1736,173 @@ def('Brine',{
       formula:'Rate (mpy) = 534 × W(mg) ÷ (A·T·D)\nlb/ft²/yr = mpy ÷ 24.6\nW=weight loss, A=in², T=hours, D=g/cm³',
       steps:`= 534×${round(mg,0)} ÷ (${round(v.area)}×${round(hr,0)}×${round(v.rho,2)}) = <b>${round(mpy,1)} mpy</b>`,
       note:'mpy = mils (0.001 in) penetration per year. <1 very low, 1–5 low, 5–10 moderate, >10 high. Add oxygen scavenger / raise pH / filming amine as needed.'};
+  }
+});
+
+/* ===== ADDED CALCULATORS (v4.1) ===== */
+def('Chemistry',{
+  id:'pilot', name:'Pilot Test Scale-Up', icon:'🧪',
+  desc:'Convert a lab pilot-test addition (grams per sample) to field lb/bbl and total product for the system.',
+  inputs:[
+    {k:'grams',label:'Product added to sample',unit:'g',def:3.5},
+    {k:'sample',label:'Lab sample size',unit:'mL',def:350},
+    {k:'vol',label:'System volume to treat',unit:'bbl',def:800},
+    {k:'sack',label:'Package size',unit:'lb',def:50}
+  ],
+  calc(v){
+    if(v.sample<=0) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Sample size must be greater than zero.'};
+    const lbbbl=v.grams*350/v.sample;            // 1 g / 350 mL ≡ 1 lb/bbl
+    const totLb=lbbbl*v.vol;
+    const sacks=v.sack>0? totLb/v.sack : 0;
+    return {main:{n:'Field Concentration',v:round(lbbbl,2),u:'lb/bbl'},
+      rows:[
+        {k:'Total product',v:round(totLb,0)+' lb  ('+round(totLb*0.000453592,2)+' t)'},
+        {k:'Packages ('+round(v.sack,0)+' lb)',v:round(sacks,1)+' sacks'},
+        {k:'Metric concentration',v:round(lbbbl*2.853,2)+' kg/m³'},
+        {k:'Per 100 bbl',v:round(lbbbl*100,0)+' lb'}
+      ],
+      formula:'lb/bbl = grams × 350 ÷ sample(mL)      (1 g / 350 mL ≡ 1 lb/bbl)\nTotal lb = lb/bbl × system volume',
+      steps:`lb/bbl = ${round(v.grams,2)} × 350 ÷ ${round(v.sample,0)} = <b>${round(lbbbl,2)} lb/bbl</b>\nTotal = ${round(lbbbl,2)} × ${round(v.vol,0)} = <b>${round(totLb,0)} lb</b>`,
+      note:'A 350 mL lab sample represents 1 bbl (350 lb of water), so grams-per-350 mL reads straight across as lb/bbl. Always confirm the treated property on a pilot before batching the whole system.'};
+  }
+});
+def('Hydraulics',{
+  id:'cuttings', name:'Cuttings Transport & Hole Cleaning', icon:'🪨',
+  desc:'Transport ratio, annular cuttings concentration and cuttings-generation rate for hole cleaning.',
+  inputs:[
+    {k:'gpm',label:'Flow Rate',unit:'gpm',def:600},
+    {k:'dh',label:'Hole Diameter',unit:'in',def:8.5},
+    {k:'dp',label:'Pipe OD',unit:'in',def:5},
+    {k:'rop',label:'Rate of Penetration',unit:'ft/hr',def:60},
+    {k:'vs',label:'Cuttings Slip Velocity',unit:'ft/min',def:40}
+  ],
+  calc(v){
+    const av=24.51*v.gpm/(v.dh*v.dh-v.dp*v.dp);          // ft/min
+    const ctv=av-v.vs;                                   // net upward transport velocity
+    const tr=av>0? ctv/av : 0;                           // transport ratio
+    const ropMin=v.rop/60;
+    const conc=ctv>0? 100*(v.dh*v.dh*ropMin)/((v.dh*v.dh-v.dp*v.dp)*ctv) : Infinity;
+    const cutBblHr=(v.dh*v.dh)/K.CAP*v.rop;              // in-situ cuttings volume bbl/hr
+    const cutLbHr=cutBblHr*350*2.6;                      // ~2.6 SG cuttings
+    const ok=tr>=0.5 && conc<5;
+    return {main:{n:'Transport Ratio',v:round(tr*100,0),u:'%'},
+      rows:[
+        {k:'Annular velocity',v:round(av,0)+' ft/min'},
+        {k:'Net transport velocity',v:round(ctv,0)+' ft/min'},
+        {k:'Cuttings concentration',v:(isFinite(conc)?round(conc,1):'—')+' % by vol'},
+        {k:'Cuttings generated',v:round(cutBblHr,2)+' bbl/hr  ('+round(cutLbHr,0)+' lb/hr)'},
+        {k:'Hole cleaning',v: ctv<=0?'⚠ Cuttings not rising — raise flow / rheology': ok?'Adequate':'Marginal — raise flow, YP or sweep'}
+      ],
+      formula:'AV = 24.51 × Q ÷ (Dh² − Dp²)\nNet transport Vt = AV − Vslip     Transport ratio = Vt ÷ AV\nConcentration % = 100 × Dh²·(ROP/60) ÷ ((Dh²−Dp²)·Vt)',
+      steps:`AV = 24.51 × ${round(v.gpm,0)} ÷ (${round(v.dh)}²−${round(v.dp)}²) = <b>${round(av,0)} ft/min</b>\nVt = ${round(av,0)} − ${round(v.vs,0)} = <b>${round(ctv,0)} ft/min</b>\nTR = ${round(ctv,0)} ÷ ${round(av,0)} = <b>${round(tr*100,0)}%</b>`,
+      note:'Aim for transport ratio ≥ 50 % and annular cuttings concentration < 5 %. Slip velocity rises with larger, denser cuttings and thin muds; deviated holes need higher flow and a good low-shear-rate YP. Typical slip velocity 30–60 ft/min.'};
+  }
+});
+def('Well Control',{
+  id:'tripfill', name:'Trip Sheet — Hole Fill & Displacement', icon:'🪣',
+  desc:'Barrels the hole should take (pulling) or give back (running) — trip-tank monitoring for early kick/loss detection.',
+  inputs:[
+    {k:'mode',label:'Operation',unit:'',def:'pull',rerender:true,opts:[['pull','Pulling out (POOH)'],['run','Running in (RIH)']]},
+    {k:'fill',label:'Pipe condition',unit:'',def:'dry',opts:[['dry','Dry (mud drains / open-ended)'],['wet','Wet / plugged (full of mud, closed)']]},
+    {k:'od',label:'Pipe / collar OD',unit:'in',def:5},
+    {k:'id',label:'Pipe ID',unit:'in',def:4.276},
+    {k:'stand',label:'Stand length',unit:'ft',def:93},
+    {k:'n',label:'Stands moved',unit:'',def:5},
+    {k:'actual',label:'Actual trip-tank change',unit:'bbl',def:0}
+  ],
+  calc(v){
+    const dispBbl=(v.od*v.od-v.id*v.id)/K.CAP;   // steel displacement bbl/ft
+    const closedBbl=(v.od*v.od)/K.CAP;           // closed-end bbl/ft
+    const perFt=v.fill==='wet'? closedBbl : dispBbl;
+    const len=v.stand*v.n;
+    const expected=perFt*len;
+    const perStand=perFt*v.stand;
+    const diff=v.actual? v.actual-expected : 0;
+    let flag='Enter the actual trip-tank change to compare';
+    if(v.actual){
+      const tol=Math.max(expected*0.1,0.5);
+      if(v.mode==='pull'){
+        flag = v.actual<expected-tol ? '⚠ Hole took LESS than expected — possible swab / kick (flow-check the well)' :
+               v.actual>expected+tol ? 'Hole took MORE than expected — check for losses' : 'Within tolerance — hole taking correct volume';
+      } else {
+        flag = v.actual>expected+tol ? '⚠ More returns than displaced — possible kick' :
+               v.actual<expected-tol ? 'Fewer returns than displaced — possible losses' : 'Within tolerance';
+      }
+    }
+    return {main:{n:v.mode==='pull'?'Hole should TAKE':'Returns should GIVE',v:round(expected,2),u:'bbl'},
+      rows:[
+        {k:'Per stand',v:round(perStand,3)+' bbl'},
+        {k:'Per foot',v:round(perFt,4)+' bbl/ft'},
+        {k:'Length moved',v:round(len,0)+' ft  ('+round(v.n,0)+' stands)'},
+        ...(v.actual?[{k:'Difference (actual − expected)',v:round(diff,2)+' bbl'}]:[]),
+        {k:'Status',v:flag}
+      ],
+      formula:(v.fill==='wet'
+        ?'Closed-end (wet) fill/ft = OD² ÷ 1029.4'
+        :'Dry (open) fill/ft = (OD² − ID²) ÷ 1029.4')+'\nExpected = fill/ft × stand length × number of stands',
+      steps:`fill/ft = ${v.fill==='wet'?`${round(v.od)}²`:`(${round(v.od)}²−${round(v.id)}²)`} ÷ 1029.4 = <b>${round(perFt,4)} bbl/ft</b>\nExpected = ${round(perFt,4)} × ${round(v.stand,0)} × ${round(v.n,0)} = <b>${round(expected,2)} bbl</b>`,
+      note:'Fill the hole every 3–5 stands and compare the trip tank against this figure. A dry (open-ended) string displaces only its steel; a wet/plugged string displaces its full closed volume. If the hole fails to take the calculated volume while pulling, stop and flow-check — the well may be swabbing in an influx.'};
+  }
+});
+def('Volumes',{
+  id:'circtime', name:'Circulation & Lag Time', icon:'⏱️',
+  desc:'Active-system volume with surface-to-bit (lag down), bottoms-up and total circulation strokes & time.',
+  inputs:[
+    {k:'md',label:'Measured Depth',unit:'ft',def:10000},
+    {k:'id',label:'Drill Pipe ID',unit:'in',def:4.276},
+    {k:'dh',label:'Hole / Casing ID',unit:'in',def:8.5},
+    {k:'od',label:'Pipe OD',unit:'in',def:5},
+    {k:'po',label:'Pump Output',unit:'bbl/stk',def:0.117},
+    {k:'spm',label:'Pump Speed',unit:'spm',def:60},
+    {k:'surf',label:'Surface (pits) volume',unit:'bbl',def:400}
+  ],
+  calc(v){
+    if(v.po<=0) return {main:{n:'—',v:'—',u:''},rows:[],warn:'Pump output must be greater than zero.'};
+    const strVol=(v.id*v.id)/K.CAP*v.md;
+    const annVol=(v.dh*v.dh-v.od*v.od)/K.CAP*v.md;
+    const downVol=strVol+annVol;
+    const totVol=downVol+v.surf;
+    const spmDiv=v.spm>0? v.spm : 1;
+    const mk=vol=>({stk:vol/v.po, min:(vol/v.po)/spmDiv});
+    const down=mk(strVol), bu=mk(annVol), full=mk(downVol), tot=mk(totVol);
+    return {main:{n:'Bottoms-Up',v:round(bu.stk,0),u:'stk'},
+      rows:[
+        {k:'Bottoms-up time',v:round(bu.min,1)+' min  ('+round(bu.min/60,2)+' hr)'},
+        {k:'Surface → bit (lag down)',v:round(down.stk,0)+' stk  /  '+round(down.min,1)+' min'},
+        {k:'Full circulation (bit + up)',v:round(full.stk,0)+' stk  /  '+round(full.min,1)+' min'},
+        {k:'Total active (incl. pits)',v:round(tot.stk,0)+' stk  /  '+round(tot.min,1)+' min'},
+        {k:'String volume',v:round(strVol,1)+' bbl'},
+        {k:'Annulus volume',v:round(annVol,1)+' bbl'},
+        {k:'Total system',v:round(totVol,1)+' bbl'}
+      ],
+      formula:'String = ID²÷1029.4 × MD     Annulus = (Dh²−OD²)÷1029.4 × MD\nStrokes = volume ÷ pump output     Time = strokes ÷ SPM',
+      steps:`Annulus = (${round(v.dh)}²−${round(v.od)}²)÷1029.4 × ${round(v.md,0)} = <b>${round(annVol,1)} bbl</b>\nBottoms-up = ${round(annVol,1)} ÷ ${round(v.po,3)} = <b>${round(bu.stk,0)} stk</b> = ${round(bu.min,1)} min`,
+      note:'Single-section approximation — for a tapered string or multi-diameter hole, add each section\'s capacity separately. "Lag" (bottoms-up) is how long a cuttings sample or gas from bottom takes to reach surface; full circulation moves fresh mud from the suction all the way around.'};
+  }
+});
+def('Cementing',{
+  id:'displace', name:'Casing Displacement (Bump Plug)', icon:'🛢️',
+  desc:'Mud volume and strokes to displace the top cement plug down to the float collar.',
+  inputs:[
+    {k:'id',label:'Casing ID',unit:'in',def:6.184},
+    {k:'fc',label:'Float-collar depth',unit:'ft',def:9950},
+    {k:'po',label:'Pump Output',unit:'bbl/stk',def:0.102},
+    {k:'exc',label:'Surface-line allowance',unit:'bbl',def:0}
+  ],
+  calc(v){
+    const cap=(v.id*v.id)/K.CAP;
+    const dispVol=cap*v.fc+v.exc;
+    const strokes=v.po>0? dispVol/v.po : 0;
+    return {main:{n:'Displacement Volume',v:round(dispVol,1),u:'bbl'},
+      rows:[
+        {k:'Casing capacity',v:round(cap,4)+' bbl/ft'},
+        {k:'Strokes to bump',v:round(strokes,0)+' stk'},
+        {k:'In m³',v:round(dispVol*0.158987,2)+' m³'},
+        {k:'Slow-down point',v:round(strokes*0.95,0)+' stk (last ≈5 %) before bump'}
+      ],
+      formula:'Displacement = ID²÷1029.4 × float-collar depth  (+ surface lines)\nStrokes = displacement ÷ pump output',
+      steps:`cap = ${round(v.id)}² ÷ 1029.4 = <b>${round(cap,4)} bbl/ft</b>\nVol = ${round(cap,4)} × ${round(v.fc,0)} = <b>${round(dispVol,1)} bbl</b>\nStrokes = ${round(dispVol,1)} ÷ ${round(v.po,3)} = <b>${round(strokes,0)} stk</b>`,
+      note:'Displace the top plug to the float collar; slow to a low, controlled rate for the last few barrels and watch for the pressure rise ("bump"). Do not over-displace past the float. Add surface-line volume when displacing from a cement unit through long treating lines.'};
   }
 });
 
