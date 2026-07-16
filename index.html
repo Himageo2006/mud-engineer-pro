@@ -354,6 +354,16 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .vok{color:var(--accent);font-weight:750}
 .vbad{color:var(--danger);font-weight:800}
 .vna{color:var(--faint)}
+/* Mud proposal */
+#propout{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.psec{border:1px solid var(--line2);border-radius:11px;padding:12px 14px;margin-bottom:11px;background:var(--bg-2)}
+.psec-h{font-size:12px;font-weight:750;color:var(--brand2);margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.rx-in{border:1px solid var(--line2);background:transparent;color:var(--danger);border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:12px}
+.rx-in:hover{background:rgba(240,100,95,.12)}
+.prop-sec{margin-top:18px;padding-top:6px;border-top:1px dashed var(--line)}
+.prop-frame{background:var(--bg-2);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--text);margin-bottom:12px}
+.pf-form{color:var(--muted);font-size:12px}
+.pt{display:block;font-size:12px;color:var(--brand2);font-weight:750;margin:4px 0 7px}
 .rtbl.out.sum td:nth-child(odd){color:var(--muted)}
 .rtbl.out.sum td:nth-child(even){font-weight:700;font-family:var(--mono)}
 .turb{color:var(--brand2);font-weight:700}.lam{color:var(--accent);font-weight:700}
@@ -1935,6 +1945,17 @@ const CACL2_BRINE=[[0,1.000,1.00],[5,1.040,0.97],[10,1.083,0.93],[15,1.129,0.87]
 function cacl2Interp(wt){ const t=CACL2_BRINE; if(wt<=t[0][0])return{sg:t[0][1],aw:t[0][2]}; const last=t[t.length-1]; if(wt>=last[0])return{sg:last[1],aw:last[2]};
   for(let i=0;i<t.length-1;i++){const a=t[i],b=t[i+1]; if(wt>=a[0]&&wt<=b[0]){const f=(wt-a[0])/(b[0]-a[0]); return{sg:a[1]+f*(b[1]-a[1]),aw:a[2]+f*(b[2]-a[2])};}} return{sg:last[1],aw:last[2]}; }
 
+/* mud-system spec + additive library (proposal generator) */
+const MUDSYS={
+  spud:{n:'Spud Mud (WBM)',kind:'WBM',mw:'8.5 – 9.6',props:[['Funnel viscosity','45 – 65 s/qt'],['PV','ALAP (10–15 cP)'],['YP','20 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 8–25'],['API fluid loss','N/C'],['Bentonite','10 – 20 ppb'],['pH','9.0 – 10.5']],adds:[['Caustic Soda','Alkalinity control','0.25 – 0.5 ppb'],['Soda Ash','Hardness control','0.5 – 1 ppb'],['Bentonite','Viscosifier','10 – 20 ppb'],['Barite 4.1 SG','Weighting agent','as needed']]},
+  gelpoly:{n:'Gel Polymer (WBM)',kind:'WBM',mw:'8.7 – 9.2',props:[['Funnel viscosity','35 – 60 s/qt'],['PV','ALAP (10–15 cP)'],['YP','8 – 15 lb/100ft²'],['Gels 10s/10m','3–10 / 4–15'],['API fluid loss','8 – 12 cc'],['MBT','< 5 – 10 ppb'],['Ca²⁺','< 400 mg/L'],['pH','9.0 – 10.5']],adds:[['Caustic Soda','Alkalinity control','0.5 ppb'],['Soda Ash','Hardness control','1 ppb'],['Xanthan Gum','Viscosifier','1.0 – 1.25 ppb'],['PAC / Starch','Filtration control','3 ppb'],['Chrome-Free Lignosulfonate','Dispersant','as needed']]},
+  kclpoly:{n:'KCl / NaCl Polymer (WBM)',kind:'WBM',mw:'as hole dictates',props:[['Funnel viscosity','40 – 60 s/qt'],['PV','ALAP'],['YP','12 – 20 lb/100ft²'],['LSYP','> 5'],['Gels 10s/10m','6–10 / 8–15'],['API fluid loss','< 6 cc'],['KCl','5 – 7 %'],['pH','9.0 – 10.5'],['Ca²⁺','< 400 mg/L']],adds:[['Caustic Soda','Alkalinity control','0.5 ppb'],['Potassium Chloride','Shale inhibitor','5 – 7 %'],['Xanthan Gum','Viscosifier','0.75 – 1.0 ppb'],['PAC-LV / Starch','Filtration control','2 – 4 ppb'],['Glycol','Shale inhibitor','2 – 3 %']]},
+  obm7030:{n:'OBM 70/30 OWR',kind:'OBM',mw:'as hole dictates',props:[['Funnel viscosity','45 – 70 s/qt'],['PV','ALAP'],['YP','12 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 7–25'],['LSYP','6 – 8'],['HTHP fluid loss','< 5 cc/30min'],['O/W ratio','70 / 30'],['ES','> 500 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','200 – 220k ppm']],adds:[['Organophilic Clay','Viscosifier','2 – 3 ppb'],['Primary/Passive Emulsifier','Emulsifier','as needed'],['Lime','Alkalinity','4 ppb'],['Wetting Agent','Oil-wetting','0.25 ppb'],['Fluid-loss reducer (Gilsonite)','Filtration control','3 ppb'],['CaCl₂','Water-phase salinity','25 – 30 %'],['Sized CaCO₃','Bridging','30 ppb'],['Barite 4.1 SG','Weighting agent','as needed']]},
+  obm8020:{n:'OBM 80/20 OWR',kind:'OBM',mw:'as hole dictates',props:[['Funnel viscosity','45 – 70 s/qt'],['PV','ALAP'],['YP','12 – 25 lb/100ft²'],['Gels 10s/10m','6–15 / 7–25'],['LSYP','6 – 8'],['HTHP fluid loss','< 4 cc/30min'],['O/W ratio','80 / 20'],['ES','≥ 800 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','220 – 240k ppm']],adds:[['Organophilic Clay','Viscosifier','2 – 3 ppb'],['Primary/Passive Emulsifier','Emulsifier','as needed'],['Lime','Alkalinity','4 ppb'],['Wetting Agent','Oil-wetting','0.25 ppb'],['Fluid-loss reducer','Filtration control','3 ppb'],['CaCl₂','Water-phase salinity','25 – 30 %'],['Sized CaCO₃','Bridging','30 ppb'],['Barite 4.1 SG','Weighting agent','as needed']]},
+  obm955:{n:'ND OBM 95/5 OWR',kind:'OBM',mw:'9.2 – 9.7',props:[['Funnel viscosity','as planned rheology'],['PV','ALAP'],['YP','12 – 14 lb/100ft²'],['Gels 10s/10m','6–15 / 7–22'],['LSYP','> 5'],['HTHP fluid loss','4 – 5 cc/30min'],['O/W ratio','95 / 5'],['ES','> 1000 V'],['Excess lime','> 5 ppb'],['CaCl₂ water phase','25 – 30 %'],['WPS','200 – 220k ppm']],adds:[['Organophilic Clay','Viscosifier','2 – 3 ppb'],['Primary/Passive Emulsifier','Emulsifier','as needed'],['Lime','Alkalinity','4 ppb'],['Wetting Agent','Oil-wetting','0.18 ppb'],['Fluid-loss reducer','Filtration control','3 ppb'],['Sized CaCO₃','Bridging','25 ppb']]}
+};
+const HOLECLEAN={'22':{q:'—',rpm:'—',av:'—'},'16':{q:'1100 – 1300 gpm',rpm:'150',av:'> 110 ft/min'},'12.25':{q:'800 – 1100 gpm',rpm:'120 – 150',av:'> 150 ft/min'},'8.5':{q:'600 – 700 gpm',rpm:'100 – 120',av:'> 180 ft/min'},'6.125':{q:'300 – 400 gpm',rpm:'70 – 80',av:'> 200 ft/min'}};
+
 def('Chemistry',{
   id:'wps', name:'Water Phase Salinity (WPS)', icon:'🧂',
   desc:'Water-phase salinity of an oil-based mud from whole-mud chloride + retort — as CaCl₂ wt%, ppm and mg/L, with brine SG & water activity.',
@@ -2458,6 +2479,14 @@ const app = {
     // reported values for VERIFY mode (blank = generate mode)
     vPV:'', vYP:'', vLSYP:'', vOWR:'', vWPS:'', vAV:'', vECD:'', vBU:'', vBitdp:''
   }),
+  prop: lsGet('mep_prop', {
+    company:'CPVEN', well:'', rig:'', field:'', operator:'Kuwait Oil Company (KOC)', objective:'', welltype:'', propno:'', date:'', preparedBy:'', approvedBy:'',
+    secs:[
+      {hole:'16', casing:'13⅜"', md:5970, tvd:5883, lastCsg:1126, inc:17, formations:'Dammam, Rus, Radhuma, Tayarat, Hartha, Sadi, Mutriba', sys:'gelpoly', mwLo:8.7, mwHi:9.2, washout:10, surf:1000, dilF:1.0, unitCost:2.2},
+      {hole:'12.25', casing:'9⅝"', md:7168, tvd:6942, lastCsg:5970, inc:42, formations:'Mutriba, Mishrif, Rumaila, Ahmadi, Tuba', sys:'obm7030', mwLo:11.5, mwHi:12.5, washout:5, surf:1000, dilF:0.5, unitCost:15.1},
+      {hole:'8.5', casing:'7" liner', md:8266, tvd:7444, lastCsg:7168, inc:90, formations:'Wara, Mauddud A/D/E/F', sys:'obm7030', mwLo:12.5, mwHi:12.9, washout:5, surf:800, dilF:0.7, unitCost:16.5}
+    ]
+  }),
   init(){
     if(localStorage.getItem('mep_theme')==='light') document.documentElement.setAttribute('data-theme','light');
     this.buildNav();
@@ -2504,6 +2533,7 @@ const app = {
     h+=`<div class="navitem" data-search="hydraulics report circulating pressure loss ecd bit" data-id="report:hyd" onclick="app.go('report:hyd')">Hydraulics Report</div>`;
     h+=`<div class="navitem" data-search="daily mud report dmr generator generate" data-id="report:dmr" onclick="app.go('report:dmr')">DMR Generator</div>`;
     h+=`<div class="navitem" data-search="dmr verify check calculations upload" data-id="report:verify" onclick="app.go('report:verify')">DMR Verify</div>`;
+    h+=`<div class="navitem" data-search="mud proposal program drilling fluids generator sections" data-id="report:proposal" onclick="app.go('report:proposal')">Mud Proposal</div>`;
     h+=`</div></div>`;
     // Training courses
     h+=`<div class="navgroup collapsed" data-g="training"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:${catColor('Training')}">${svgi('cap')}</span>Training Courses<span class="arw">▼</span></div><div class="items">`;
@@ -2555,6 +2585,7 @@ const app = {
     else if(route==='report:hyd'){ this.setActive('report:hyd'); this.renderReport(view); this.head('Hydraulics Report','Reports','Full circulating-system hydraulics analysis'); document.getElementById('main').scrollTo(0,0);}
     else if(route==='report:dmr'){ this.setActive('report:dmr'); this.renderDMR(view,false); this.head('Daily Mud Report','Reports','Generate a full DMR — enter data, print a filed record'); document.getElementById('main').scrollTo(0,0);}
     else if(route==='report:verify'){ this.setActive('report:verify'); this.renderDMR(view,true); this.head('DMR Verify','Reports','Enter a DMR — the app recomputes and flags every calculation'); document.getElementById('main').scrollTo(0,0);}
+    else if(route==='report:proposal'){ this.setActive('report:proposal'); this.renderProposal(view); this.head('Mud Proposal','Reports','Generate a sectioned drilling-fluids proposal'); document.getElementById('main').scrollTo(0,0);}
   },
   head(t,c,s){ document.getElementById('ptitle').textContent=t; document.getElementById('crumb').textContent=c; document.getElementById('psub').textContent=s||''; },
   findCalc(id){ for(const cat in CALC){const f=CALC[cat].find(c=>c.id===id); if(f)return f;} },
@@ -2582,7 +2613,7 @@ const app = {
     h+=`<div class="sectlabel"><span class="si" style="--c:#3d7bff">${svgi('compass')}</span>Browse</div><div class="hubgrid">`;
     h+=hub('#3d7bff', svgi('calc'), 'Calculations', 'Field calculators across '+catList().length+' categories — density, hydraulics, chemistry, well control &amp; more.', nCalc+' tools', 'hub:calc');
     h+=hub('#6d5cff', svgi('cap'), 'Mud School', 'Learn the whole M-I manual, chapter by chapter, in simple language with quizzes.', TRAINING.length+' courses', 'hub:train');
-    h+=hub('#ff9d2e', svgi('report'), 'Reports', 'Hydraulics report, full Daily Mud Report generator &amp; a DMR calculation verifier.', '3 reports', 'report:dmr');
+    h+=hub('#ff9d2e', svgi('report'), 'Reports', 'Hydraulics report, Daily Mud Report generator, DMR verifier &amp; a mud-proposal generator.', '4 reports', 'report:dmr');
     h+=hub('#7d93ff', svgi('book'), 'Reference Manual', 'Quick-reference chapters on every drilling-fluids topic and the formula sheet.', MANUAL.length+' chapters', 'hub:manual');
     h+=`</div>`;
     view.innerHTML=h;
@@ -3015,6 +3046,127 @@ const app = {
     ${cmp}
     <p class="rep-sub">Generated by Mud Engineer Pro · derived values (PV, YP, OWR, WPS, solids split, AV, ECD, bottoms-up, bit hydraulics) are recomputed from your inputs. Company style = ${d.company}.</p>`;
     const out=document.getElementById('dmrout'); if(out)out.innerHTML=html;
+  },
+  /* ===== MUD PROPOSAL generator ===== */
+  propSet(k,v){ this.prop[k]=v; localStorage.setItem('mep_prop',JSON.stringify(this.prop)); if(['company'].includes(k)) this.propCompute(); },
+  propSecRow(i,f,v){ this.prop.secs[i][f]=(['casing','formations','hole','sys'].includes(f))?v:(parseFloat(v)||0); localStorage.setItem('mep_prop',JSON.stringify(this.prop)); this.propCompute(); },
+  propAddSec(){ this.prop.secs.push({hole:'12.25',casing:'9⅝"',md:8000,tvd:7500,lastCsg:6000,inc:30,formations:'',sys:'obm7030',mwLo:11,mwHi:12,washout:5,surf:1000,dilF:0.6,unitCost:15}); this.renderProposal(document.getElementById('view')); },
+  propDelSec(i){ this.prop.secs.splice(i,1); this.renderProposal(document.getElementById('view')); },
+  renderProposal(view){
+    const p=this.prop; const co=this.dmrCos[p.company]||this.dmrCos.Generic;
+    const T=(lbl,id,ph)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="p_${id}" value="${p[id]||''}" oninput="app.propSet('${id}',this.value)" placeholder="${ph||'—'}"/></div></div>`;
+    const holeOpts=[['22','22"'],['16','16"'],['12.25','12¼"'],['8.5','8½"'],['6.125','6⅛"']];
+    const secCards=p.secs.map((s,i)=>`<div class="psec">
+      <div class="psec-h">Section ${i+1} <button class="rx-in" onclick="app.propDelSec(${i})" title="Remove section">✕</button></div>
+      <div class="rf-row">
+        <div class="rf"><label>Hole size</label><div class="inp"><select onchange="app.propSecRow(${i},'hole',this.value)">${holeOpts.map(o=>`<option value="${o[0]}" ${s.hole===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div></div>
+        <div class="rf"><label>Casing</label><div class="inp"><input class="ri" value="${s.casing}" oninput="app.propSecRow(${i},'casing',this.value)"/></div></div>
+        <div class="rf"><label>Mud system</label><div class="inp"><select onchange="app.propSecRow(${i},'sys',this.value)">${Object.keys(MUDSYS).map(k=>`<option value="${k}" ${s.sys===k?'selected':''}>${MUDSYS[k].n}</option>`).join('')}</select></div></div>
+        <div class="rf"><label>MD (ft)</label><div class="inp"><input class="ri n" value="${s.md}" oninput="app.propSecRow(${i},'md',this.value)"/></div></div>
+        <div class="rf"><label>TVD (ft)</label><div class="inp"><input class="ri n" value="${s.tvd}" oninput="app.propSecRow(${i},'tvd',this.value)"/></div></div>
+        <div class="rf"><label>Last casing (ft)</label><div class="inp"><input class="ri n" value="${s.lastCsg}" oninput="app.propSecRow(${i},'lastCsg',this.value)"/></div></div>
+        <div class="rf"><label>Max inc (°)</label><div class="inp"><input class="ri n" value="${s.inc}" oninput="app.propSecRow(${i},'inc',this.value)"/></div></div>
+        <div class="rf"><label>MW low</label><div class="inp"><input class="ri n" value="${s.mwLo}" oninput="app.propSecRow(${i},'mwLo',this.value)"/></div></div>
+        <div class="rf"><label>MW high</label><div class="inp"><input class="ri n" value="${s.mwHi}" oninput="app.propSecRow(${i},'mwHi',this.value)"/></div></div>
+        <div class="rf"><label>Washout %</label><div class="inp"><input class="ri n" value="${s.washout}" oninput="app.propSecRow(${i},'washout',this.value)"/></div></div>
+        <div class="rf"><label>Surface vol</label><div class="inp"><input class="ri n" value="${s.surf}" oninput="app.propSecRow(${i},'surf',this.value)"/></div></div>
+        <div class="rf"><label>Dilution (bbl/ft)</label><div class="inp"><input class="ri n" value="${s.dilF}" oninput="app.propSecRow(${i},'dilF',this.value)"/></div></div>
+        <div class="rf"><label>Cost /bbl (KWD)</label><div class="inp"><input class="ri n" value="${s.unitCost}" oninput="app.propSecRow(${i},'unitCost',this.value)"/></div></div>
+        <div class="rf" style="flex:3"><label>Formations</label><div class="inp"><input class="ri" value="${s.formations}" oninput="app.propSecRow(${i},'formations',this.value)"/></div></div>
+      </div></div>`).join('');
+    view.innerHTML=`<div class="rep fade">
+      <div class="rep-top"><div><h3>📑 Mud Proposal Generator</h3><p>Enter the well data and add a section per hole size — the app builds the full drilling-fluids program with property specs, additives, volumes, cost and standard appendices. Print for submission.</p></div>
+        <button class="btn" onclick="window.print()">🖨️ Print / PDF</button></div>
+      <div class="rep-in">
+        <div class="rf-sec"><div class="rf-h">Cover &amp; header</div><div class="rf-row">
+          <div class="rf"><label>Company style</label><div class="inp"><select id="p_company" onchange="app.propSet('company',this.value)">${Object.keys(this.dmrCos).map(k=>`<option ${p.company===k?'selected':''}>${k}</option>`).join('')}</select></div></div>
+          ${T('Well','well')}${T('Rig','rig')}${T('Field','field')}${T('Operator','operator')}${T('Well type','welltype')}${T('Proposal No.','propno')}${T('Date','date')}
+          ${T('Prepared by','preparedBy')}${T('Approved by','approvedBy')}
+        </div><div class="rf-row">${T('Objective','objective','To drill …')}</div></div>
+        <div class="rf-sec"><div class="rf-h">Hole sections  <button class="addbtn" onclick="app.propAddSec()">+ add section</button></div>${secCards}</div>
+      </div>
+      <div id="propout"></div>
+    </div>`;
+    this.propCompute();
+  },
+  propCompute(){
+    const p=this.prop, R=(n,x=0)=>round(n,x);
+    const co=this.dmrCos[p.company]||this.dmrCos.Generic;
+    const holeName={'22':'22"','16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'};
+    let totCost=0;
+    // schematic table
+    let sch=p.secs.map(s=>{const sy=MUDSYS[s.sys]||MUDSYS.obm7030; return `<tr><td>${holeName[s.hole]||s.hole}</td><td>${s.casing}</td><td>${R(s.md)} / ${R(s.tvd)}</td><td>${R(s.inc)}°</td><td>${sy.n}</td><td>${R(s.mwLo,1)} – ${R(s.mwHi,1)}</td><td>${s.formations||''}</td></tr>`;}).join('');
+    // per-section detail
+    let secs=p.secs.map((s,i)=>{
+      const sy=MUDSYS[s.sys]||MUDSYS.obm7030; const dia=parseFloat(s.hole)||8.5;
+      const ohLen=Math.max(0,s.md-s.lastCsg);
+      const holeCap=dia*dia/1029.4;
+      const ohVol=holeCap*ohLen*(1+s.washout/100);
+      const dilVol=s.dilF*ohLen;
+      const totVol=ohVol+ (s.surf||0) + dilVol;
+      const cost=totVol*(s.unitCost||0); totCost+=cost;
+      const hc=HOLECLEAN[s.hole]||{q:'—',rpm:'—',av:'—'};
+      const zone=s.inc<40?'Zone I (vertical)':s.inc<60?'Zone II (transition)':'Zone III (high-angle)';
+      return `<div class="prop-sec">
+        <h4 class="rep-h">${holeName[s.hole]||s.hole} Hole Section — ${sy.n}</h4>
+        <div class="prop-frame"><b>${s.casing} @ ${R(s.md)}' MD / ${R(s.tvd)}' TVD</b> · Open-hole length ${R(ohLen)} ft · Max inclination ${R(s.inc)}° (${zone}) · MW ${R(s.mwLo,1)}–${R(s.mwHi,1)} ppg<br><span class="pf-form">Formations: ${s.formations||'—'}</span></div>
+        <div class="dmr-cols">
+          <div><b class="pt">Recommended properties</b><table class="rtbl out sum"><tbody>
+            <tr><td>Mud weight</td><td class="dv">${sy.mw==='as hole dictates'?R(s.mwLo,1)+' – '+R(s.mwHi,1)+' ppg':sy.mw+' ppg'}</td></tr>
+            ${sy.props.map(r=>`<tr><td>${r[0]}</td><td class="dv">${r[1]}</td></tr>`).join('')}
+          </tbody></table></div>
+          <div><b class="pt">Drilling-fluid additives</b><table class="rtbl out"><thead><tr><th>Product</th><th>Function</th><th>Conc.</th></tr></thead><tbody>
+            ${sy.adds.map(a=>`<tr><td>${a[0]}</td><td>${a[1]}</td><td>${a[2]}</td></tr>`).join('')}
+          </tbody></table>
+          <b class="pt">Volume &amp; cost</b><table class="rtbl out sum"><tbody>
+            <tr><td>Open-hole volume (+${R(s.washout)}% washout)</td><td class="dv">${R(ohVol)} bbl</td></tr>
+            <tr><td>Dilution (${R(s.dilF,2)} bbl/ft × ${R(ohLen)} ft)</td><td class="dv">${R(dilVol)} bbl</td></tr>
+            <tr><td>Surface / active</td><td class="dv">${R(s.surf)} bbl</td></tr>
+            <tr class="rtot"><td>Total interval volume</td><td class="dv">${R(totVol)} bbl</td></tr>
+            <tr><td>Est. interval cost @ ${R(s.unitCost,2)} KWD/bbl</td><td class="dv">${R(cost)} KWD</td></tr>
+            <tr><td>Hole cleaning (${holeName[s.hole]||s.hole})</td><td class="dv">${hc.q} · ${hc.rpm} rpm · AV ${hc.av}</td></tr>
+          </tbody></table></div>
+        </div></div>`;
+    }).join('');
+    const html=`
+    <div class="dmr-band" style="border-color:${co.c}">
+      <div class="dmr-brand" style="color:${co.c}">${co.brand}</div>
+      <div class="dmr-title">Drilling Fluids Program</div>
+      <div class="dmr-meta"><b>${p.well||'Well ___'}</b> · Rig ${p.rig||'___'} · ${p.field||''} · ${p.operator||''} · Proposal ${p.propno||'__'} · ${p.date||''}<br>${p.objective?'Objective: '+p.objective:''}${p.welltype?' · '+p.welltype:''}</div>
+    </div>
+    <h4 class="rep-h">Well &amp; casing schematic</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Hole</th><th>Casing</th><th>MD / TVD (ft)</th><th>Max inc</th><th>Mud system</th><th>MW (ppg)</th><th>Formations</th></tr></thead><tbody>${sch}
+      <tr class="rtot"><td colspan="6">Total estimated mud cost</td><td>${R(totCost)} KWD</td></tr></tbody></table></div>
+    ${secs}
+    <h4 class="rep-h">Appendix — Hole cleaning</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Hole size</th><th>Pump rate</th><th>Pipe rotation</th><th>Annular velocity</th></tr></thead><tbody>
+      <tr><td>16"</td><td>1100 – 1300 gpm</td><td>150 rpm</td><td>&gt; 110 ft/min</td></tr>
+      <tr><td>12¼"</td><td>800 – 1100 gpm</td><td>120 – 150 rpm</td><td>&gt; 150 ft/min</td></tr>
+      <tr><td>8½"</td><td>600 – 700 gpm</td><td>100 – 120 rpm</td><td>&gt; 180 ft/min</td></tr>
+      <tr><td>6⅛"</td><td>300 – 400 gpm</td><td>70 – 80 rpm</td><td>&gt; 200 ft/min</td></tr>
+    </tbody></table></div>
+    <p class="rep-sub">Zones: I 0–40° · II 40–60° · III 60°+. Circulate before trip (×B/U): 16" 1.7/2.5/3.0 · 12¼" 1.4/1.8/2.0 · 8½" 1.4/1.6/1.7 · 6⅛" 1.4/1.5/1.6. Keep PV low (ALAP) for a flatter profile; raise LSYP (6-rpm) for hole cleaning in deviated hole.</p>
+    <h4 class="rep-h">Appendix — Formation bridging (CaCO₃)</h4>
+    <p class="rep-sub">Treat the whole system with sized Calcium Carbonate to bridge depleted zones (consider target MW first). Recommended ≈ 25 ppb — Coarse 0 / Medium 10 / Fine 15 ppb. Add Fine CaCO₃ ~5 lb/bbl per tour to maintain PSD. Use the Kaeuffer/√-PSD rule vs pore-throat size.</p>
+    <h4 class="rep-h">Appendix — Lost circulation</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Severity</th><th>Treatment</th></tr></thead><tbody>
+      <tr><td>Seepage (&lt; 20 bbl/hr)</td><td>Treat active: 6 ppb graphite/PO + 6 ppb CaCO₃(M) + 6 ppb LCM(F) + 4–8 ppb sulphonated asphalt</td></tr>
+      <tr><td>Partial (20 – 50 bbl/hr)</td><td>100 ppb LCM pill on top of loss zone — 20% mica(F) / 40% mica(M)+walnut(M)+cotton seed / 40% mica(C)+walnut(C)</td></tr>
+      <tr><td>Severe (&gt; 50 bbl/hr)</td><td>200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. KOC approval before mixing.</td></tr>
+    </tbody></table></div>
+    <h4 class="rep-h">Appendix — Stuck-pipe free pill (per 50 bbl)</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Density (ppg)</th><th>Diesel (bbl)</th><th>Spotting surfactant (drum)</th><th>Water (bbl)</th><th>Barite (lb)</th></tr></thead><tbody>
+      <tr><td>8</td><td>29</td><td>3</td><td>15</td><td>1925</td></tr>
+      <tr><td>10</td><td>27</td><td>3</td><td>14</td><td>6600</td></tr>
+      <tr><td>12</td><td>26</td><td>3</td><td>11</td><td>11750</td></tr>
+      <tr><td>14</td><td>26</td><td>3</td><td>7</td><td>17650</td></tr>
+      <tr><td>16</td><td>25</td><td>3</td><td>5</td><td>22750</td></tr>
+    </tbody></table></div>
+    <p class="rep-sub">Cover 100 ft of annulus above the free point + 10%; add 3–4 gal/bbl spotting surfactant; soak 30 min under tension, work pipe while pumping 1–2 bbl/30 min.</p>
+    <h4 class="rep-h">Appendix — Completion / displacement train</h4>
+    <p class="rep-sub"><b>WBM →</b> Caustic Soda pill 30–50 bbl · Detergent pill 30–50 · Hi-Vis pill 30–50 · Completion brine (0.2 ppg over reservoir pressure).<br><b>OBM →</b> Diesel pill 30–50 bbl · Surfactant pill 30–50 · Hi-Vis pill 30–50 · Completion brine. Ensure tanks are clean before mixing.</p>
+    <p class="rep-sub">Generated by Mud Engineer Pro · company style ${p.company}. Property ranges & volumes are recomputed from your section inputs (KOC N&amp;WK practice) — always confirm against the well-specific program and KOC instructions.</p>`;
+    const out=document.getElementById('propout'); if(out)out.innerHTML=html;
   },
   renderCalc(view,c){
     if(c.custom==='converter'){ this.pushRecent(c.id); this.renderConverter(view,c); document.getElementById('main').scrollTo(0,0); return; }
