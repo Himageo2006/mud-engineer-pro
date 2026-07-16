@@ -1,6 +1,6 @@
 /* Mud Engineer Pro — service worker (network-first so updates always win; cache = offline fallback) */
-const CACHE = 'mudeng-pro-v27';
-const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-maskable.svg','./jspdf.umd.min.js','./jspdf.autotable.min.js'];
+const CACHE = 'mudeng-pro-v28';
+const ASSETS = ['./','./index.html','./manifest.webmanifest','./icon.svg','./icon-maskable.svg','./icon-192.png','./icon-512.png','./icon-maskable-512.png','./jspdf.umd.min.js','./jspdf.autotable.min.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

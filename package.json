@@ -9,6 +9,9 @@
   "scripts": {
     "web": "node copy-web.js",
     "start": "node copy-web.js && npx http-server www -p 8080 -c-1 -o",
+    "assets": "npx @capacitor/assets generate --iconBackgroundColor #0f1419 --iconBackgroundColorDark #0f1419 --splashBackgroundColor #0f1419 --splashBackgroundColorDark #0f1419",
+    "cap:add:android": "node copy-web.js && npx cap add android",
+    "cap:add:ios": "node copy-web.js && npx cap add ios",
     "cap:sync": "node copy-web.js && npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios",
@@ -24,6 +27,7 @@
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.1.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
