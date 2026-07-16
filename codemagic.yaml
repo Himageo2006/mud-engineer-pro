@@ -1,0 +1,50 @@
+# Codemagic CI — build the iPhone (App Store) app in the cloud, no Mac required.
+# One-time setup in codemagic.io:
+#   1. Add this GitHub repo.
+#   2. Team settings ▸ integrations ▸ connect App Store Connect (API key).
+#   3. Code signing ▸ iOS ▸ let Codemagic manage certificates & the
+#      com.mudengineer.pro provisioning profile (App Store distribution).
+#   Then run the "ios-capacitor" workflow.
+workflows:
+  ios-capacitor:
+    name: Mud Engineer Pro — iOS (App Store)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "com.mudengineer.pro"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mudengineer.pro
+    scripts:
+      - name: Install dependencies
+        script: npm ci || npm install
+      - name: Add iOS platform, generate icons & sync web app
+        script: |
+          node copy-web.js
+          [ -d ios ] || npx cap add ios
+          npx @capacitor/assets generate --ios || true
+          npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Set build number from Codemagic counter
+        script: |
+          cd ios/App
+          agvtool new-version -all "$BUILD_NUMBER" || true
+      - name: Build .ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true   # set to false, or add a submit_to_app_store block, when ready for review
