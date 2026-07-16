@@ -364,6 +364,18 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .prop-frame{background:var(--bg-2);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--text);margin-bottom:12px}
 .pf-form{color:var(--muted);font-size:12px}
 .pt{display:block;font-size:12px;color:var(--brand2);font-weight:750;margin:4px 0 7px}
+/* Big generator cards (home) */
+.biggrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:10px}
+@media(max-width:760px){.biggrid{grid-template-columns:1fr}}
+.bigcard{position:relative;cursor:pointer;border:1px solid var(--card-line);border-radius:18px;padding:22px;background:linear-gradient(140deg,color-mix(in srgb,var(--c) 15%,var(--panel)),var(--panel));overflow:hidden;transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}
+.bigcard:hover{transform:translateY(-3px);border-color:var(--c);box-shadow:0 14px 34px -14px color-mix(in srgb,var(--c) 65%,transparent)}
+.bigcard::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c)}
+.bc-ic{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c);margin-bottom:14px}
+.bc-ic svg{width:28px;height:28px;stroke-width:1.7}
+.bc-b h4{margin:0 0 6px;font-size:19px;font-weight:820}
+.bc-b p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.bc-go{display:inline-flex;align-items:center;gap:6px;margin-top:16px;color:var(--c);font-weight:750;font-size:13px}
+.bc-go svg{width:16px;height:16px}
 .rtbl.out.sum td:nth-child(odd){color:var(--muted)}
 .rtbl.out.sum td:nth-child(even){font-weight:700;font-family:var(--mono)}
 .turb{color:var(--brand2);font-weight:700}.lam{color:var(--accent);font-weight:700}
@@ -2615,6 +2627,12 @@ const app = {
         <div class="stat"><b>${nQuiz}</b><span>Quiz Q's</span></div>
         <div class="stat"><b>${MANUAL.length}</b><span>Manual Ch.</span></div>
       </div></div>`;
+    // Big feature cards — document generators
+    const bigcard=(col,icon,title,desc,route)=>`<div class="bigcard" style="--c:${col}" onclick="app.go('${route}')"><div class="bc-ic">${icon}</div><div class="bc-b"><h4>${title}</h4><p>${desc}</p></div><span class="bc-go">Open ${svgi('arrow')}</span></div>`;
+    h+=`<div class="sectlabel"><span class="si" style="--c:#ff9d2e">${svgi('report')}</span>Generate a document</div><div class="biggrid">`;
+    h+=bigcard('#ff9d2e', svgi('report'), 'DMR Generator', "Build a full Daily Mud Report — enter the day's data and it auto-computes PV/YP, WPS, OWR, solids, ECD, bottoms-up, bit hydraulics &amp; cost. Company-styled &amp; printable (with a built-in calculation verifier).", 'report:dmr');
+    h+=bigcard('#00b34d', svgi('layers'), 'Mud Proposal', 'Generate a sectioned drilling-fluids program — add a section per hole size for property specs, additives, volumes &amp; cost, plus hole-cleaning, bridging, LCM &amp; stuck-pipe appendices.', 'report:proposal');
+    h+=`</div>`;
     // Quick access: favorites + recent (calculators only)
     const quick=[...this.fav, ...this.recent.filter(id=>!this.fav.includes(id))].map(id=>this.findCalc(id)?id:null).filter(Boolean).slice(0,4);
     if(quick.length){
