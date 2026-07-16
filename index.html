@@ -2576,6 +2576,10 @@ const app = {
            {label:'DP × Open Hole', hole:8.5, pipe:5, len:5000},
            {label:'DC × Open Hole', hole:8.5, pipe:6.5, len:1000} ],
     pitActive:655, pitReserve:300, lossShaker:15, lossForm:78, lossOther:6, dailyProdCost:0,
+    belowBit:0, startVol:1721, addChem:0, addOil:0, addWater:0, mudRecv:0, mudRet:0, lossType:'Seepage', cumIntCost:0, cumWellCost:0,
+    sce:[{type:'Shaker -Derrick',model:'4×170',hrs:24},{type:'Shaker -Derrick',model:'4×170',hrs:24},{type:'De-Sander',model:'',hrs:0},{type:'Desilter',model:'',hrs:0},{type:'Centrifuge',model:'GNLW363-VFD',hrs:0}],
+    timedist:[{act:'Drilling',hrs:12},{act:'Circulating',hrs:4},{act:'Tripping',hrs:8}],
+    tanks:[{name:'Active 1-2',cap:950,wt:12.5,vol:439,remark:'OBM 70/30',cls:'Active'},{name:'Reserve 5A',cap:250,wt:12.5,vol:230,remark:'OBM 70/30',cls:'Reserve'},{name:'Slug',cap:95,wt:0,vol:0,remark:'',cls:'Reserve'}],
     prods:[ {name:'BARITE 4.1 SG', unit:'mt', size:2204, start:100, recv:20, used:26, cum:141, price:81.93},
             {name:'CaCO₃ (F&M)', unit:'bag', size:2200, start:15, recv:0, used:3, cum:8, price:33.9},
             {name:'Sulphonated Asphalt', unit:'sx', size:55, start:302, recv:0, used:13, cum:75, price:18} ],
@@ -3000,6 +3004,9 @@ const app = {
   dmrAddCheck(){ if(this.dmr.checks.length>=6)return; const last=this.dmr.checks[this.dmr.checks.length-1]||{}; this.dmr.checks.push(Object.assign({},last)); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDelCheck(i){ if(this.dmr.checks.length<=1)return; this.dmr.checks.splice(i,1); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrSysToggle(s){ this.dmr.sysType=s; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrLRow(list,i,f,v,txt){ if(!this.dmr[list]||!this.dmr[list][i])return; this.dmr[list][i][f]=txt?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
+  dmrLAdd(list){ const t={sce:{type:'Shaker',model:'',hrs:24},timedist:{act:'',hrs:0},tanks:{name:'Tank',cap:0,wt:0,vol:0,remark:'',cls:'Active'}}[list]; if(!Array.isArray(this.dmr[list]))this.dmr[list]=[]; this.dmr[list].push(Object.assign({},t)); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrLDel(list,i){ this.dmr[list].splice(i,1); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   renderDMR(view,verify){
     this._dmrVerify=verify; const d=this.dmr;
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
@@ -3066,6 +3073,35 @@ const app = {
             <td><input class="ri n" value="${a.len}" oninput="app.dmrRow('anns',${i},'len',this.value)"/></td>
             <td class="rx"><button onclick="app.dmrDel('anns',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table>
         </div>
+        <div class="rf-sec"><div class="rf-h">Mud volume accounting (bbl)</div><div class="rf-row">
+          ${F('Start volume','startVol','bbl')}${F('Added chemicals','addChem','bbl')}${F('Added oil','addOil','bbl')}${F('Added water','addWater','bbl')}${F('Mud received','mudRecv','bbl')}${F('Mud returned','mudRet','bbl')}${F('Vol below bit','belowBit','bbl')}${T('Losses type','lossType')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Solids control equipment  <button class="addbtn" onclick="app.dmrLAdd('sce')">+ add</button></div>
+          <div class="rtbl-wrap"><table class="rtbl"><thead><tr><th>Type</th><th>Model / Size</th><th>Hrs used</th><th></th></tr></thead><tbody>${d.sce.map((r,i)=>`<tr>
+            <td><input class="ri" value="${r.type||''}" oninput="app.dmrLRow('sce',${i},'type',this.value,1)"/></td>
+            <td><input class="ri" value="${r.model||''}" oninput="app.dmrLRow('sce',${i},'model',this.value,1)"/></td>
+            <td><input class="ri n" value="${r.hrs!==undefined?r.hrs:0}" oninput="app.dmrLRow('sce',${i},'hrs',this.value)"/></td>
+            <td class="rx"><button onclick="app.dmrLDel('sce',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table></div>
+        </div>
+        <div class="rf-sec"><div class="rf-h">Time distribution (hr)  <button class="addbtn" onclick="app.dmrLAdd('timedist')">+ add</button></div>
+          <div class="rtbl-wrap"><table class="rtbl"><thead><tr><th>Activity</th><th>Hours</th><th></th></tr></thead><tbody>${d.timedist.map((r,i)=>`<tr>
+            <td><input class="ri" value="${r.act||''}" oninput="app.dmrLRow('timedist',${i},'act',this.value,1)"/></td>
+            <td><input class="ri n" value="${r.hrs!==undefined?r.hrs:0}" oninput="app.dmrLRow('timedist',${i},'hrs',this.value)"/></td>
+            <td class="rx"><button onclick="app.dmrLDel('timedist',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table></div>
+        </div>
+        <div class="rf-sec"><div class="rf-h">Rig tanks  <button class="addbtn" onclick="app.dmrLAdd('tanks')">+ add</button></div>
+          <div class="rtbl-wrap"><table class="rtbl"><thead><tr><th>Tank</th><th>Capacity</th><th>Weight</th><th>Volume</th><th>Remarks</th><th>Class</th><th></th></tr></thead><tbody>${d.tanks.map((r,i)=>`<tr>
+            <td><input class="ri" value="${r.name||''}" oninput="app.dmrLRow('tanks',${i},'name',this.value,1)"/></td>
+            <td><input class="ri n" value="${r.cap||0}" oninput="app.dmrLRow('tanks',${i},'cap',this.value)"/></td>
+            <td><input class="ri n" value="${r.wt||0}" oninput="app.dmrLRow('tanks',${i},'wt',this.value)"/></td>
+            <td><input class="ri n" value="${r.vol||0}" oninput="app.dmrLRow('tanks',${i},'vol',this.value)"/></td>
+            <td><input class="ri" value="${r.remark||''}" oninput="app.dmrLRow('tanks',${i},'remark',this.value,1)"/></td>
+            <td><select onchange="app.dmrLRow('tanks',${i},'cls',this.value,1)">${['Active','Reserve','Other'].map(o=>`<option ${r.cls===o?'selected':''}>${o}</option>`).join('')}</select></td>
+            <td class="rx"><button onclick="app.dmrLDel('tanks',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table></div>
+        </div>
+        <div class="rf-sec"><div class="rf-h">Cost roll-up (KWD)</div><div class="rf-row">
+          ${F('Cumulative interval cost','cumIntCost','KWD')}${F('Cumulative well cost','cumWellCost','KWD')}
+        </div></div>
         <div class="rf-sec"><div class="rf-h">Rig operations &amp; fluid comments</div><div class="rf-row">
           <div class="rf" style="flex:100%"><label>Rig daily operations (remarks / last 24 hr)</label><textarea class="rtxa" id="d_remarks" oninput="app.dmrSet('remarks',this.value)" placeholder="e.g. Cont. directional drilling 12¼'' hole from 8550' to 8723' TD, full returns, seepage losses 3–5 bbl/hr. Swept hole 3×30 bbl HWP, raised MW to 12.8 ppg, flow-checked, POOH to shoe…">${d.remarks||''}</textarea></div>
           <div class="rf" style="flex:100%"><label>Fluid treatments / recommended tour treatments</label><textarea class="rtxa" id="d_treatments" oninput="app.dmrSet('treatments',this.value)" placeholder="e.g. Maintain graphite as bridging + Soltex/Latex for shale inhibition + Gilsonite for FL &lt; 2.5 cc. Add lime to keep excess lime in range; add 2 dr wetting agent per 34 MT weight material…">${d.treatments||''}</textarea></div>
@@ -3086,9 +3122,10 @@ const app = {
     const d=this.dmr, verify=this._dmrVerify;
     if(!Array.isArray(d.checks)||!d.checks.length) d.checks=[{}];
     if(!Array.isArray(d.pipes)) d.pipes=[]; if(!Array.isArray(d.anns)) d.anns=[];
+    if(!Array.isArray(d.sce)) d.sce=[]; if(!Array.isArray(d.timedist)) d.timedist=[]; if(!Array.isArray(d.tanks)) d.tanks=[];
     const g=id=>{const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;};
     // pull measured (non mud-check) inputs live
-    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','oilSG','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
+    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','oilSG','pitActive','pitReserve','lossShaker','lossForm','lossOther','startVol','addChem','addOil','addWater','mudRecv','mudRet','belowBit','cumIntCost','cumWellCost'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
     d.noz=[0,1,2,3,4,5].map(i=>g('d_noz'+i));
     if(verify)['vPV','vYP','vLSYP','vOWR','vWPS','vAV','vECD','vBU','vBitdp'].forEach(k=>{const el=document.getElementById('d_'+k); if(el)d[k]=el.value;});
     localStorage.setItem('mep_dmr',JSON.stringify(d));
@@ -3147,6 +3184,14 @@ const app = {
     // ---- inventory / concentration / cost ----
     const pUsed=p=>(+p.used|| +p.qty||0), pStart=p=>(+p.start||0), pRecv=p=>(+p.recv||0), pCum=p=> p.cum!==undefined?(+p.cum||0):(+p.used|| +p.qty||0), pSize=p=>(+p.size||0), pPrice=p=>(+p.price||0);
     const dailyCost=d.prods.reduce((s,p)=>s+pUsed(p)*pPrice(p),0);
+    // ---- volume accounting, salt-conc, mud-in-hole, tanks, time ----
+    const dailyLoss=(+d.lossShaker||0)+(+d.lossForm||0)+(+d.lossOther||0);
+    const endVol=(+d.startVol||0)+(+d.addChem||0)+(+d.addOil||0)+(+d.addWater||0)+(+d.mudRecv||0)-(+d.mudRet||0)-dailyLoss;
+    const saltConcWM=saltWM*0.00035048;                       // CaCl₂ lb/bbl of whole mud
+    const holeAnn=annVol, holePipe=strVol, holeBelow=(+d.belowBit||0), holeTot=holeAnn+holePipe+holeBelow;
+    const tankSum={Active:0,Reserve:0,Other:0}; d.tanks.forEach(t=>{ const c=['Active','Reserve','Other'].includes(t.cls)?t.cls:'Other'; tankSum[c]+=(+t.vol||0); });
+    const tankTot=tankSum.Active+tankSum.Reserve+tankSum.Other;
+    const tdTot=d.timedist.reduce((s,r)=>s+(+r.hrs||0),0);
     // ---- output ----
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
     const tile=(l,v,u,c)=>`<div class="rk"><div class="rk-l">${l}</div><div class="rk-v"${c?` style="color:${c}"`:''}>${v}<small>${u||''}</small></div></div>`;
@@ -3189,16 +3234,18 @@ const app = {
       return inner? `<div class="dmr-opswrap">${inner}</div>`:''; })()}
     ${mudTbl}
     <div class="dmr-cols">
-      <div><h4 class="rep-h">Derived — latest check</h4><table class="rtbl out sum"><tbody>
-        ${pr('n / K (pipe)',R(np,3)+' / '+R(Kp,2))}
-        ${pr('n / K (annulus)',R(na,3)+' / '+R(Ka,2))}
-        ${sys==='OBM'?pr('CaCl₂ / WPS',R(saltWM)+' mg/L · '+R(wps_wt,1)+' wt% · '+R(wps_ppm)+' ppm'):pr('Chlorides',R(+hck.chl||0)+' mg/L')}
-        ${sys==='OBM'?pr('Brine SG / content',R(brineSG,3)+' · '+R(brineContent,1)+' %'):''}
+      <div><h4 class="rep-h">Solids analysis</h4><table class="rtbl out sum"><tbody>
+        ${sys==='OBM'?pr('Salt Wt (%wt)',R(wps_wt,1)):''}
+        ${sys==='OBM'?pr('Salt Conc Whole Mud (lb/bbl)',R(saltConcWM,1)):''}
+        ${pr('Adjusted Solids (%vol)',R(sys==='OBM'?corrSolids:(+hck.solids||0),1))}
+        ${sys==='OBM'?pr('Oil / Water Ratio',owrO+' / '+owrW):''}
+        ${pr('Avg SG Solids',R(avgSG,2))}
+        ${pr('Low Gravity (%)',R(lgsPct,1))}
+        ${pr('Low Gravity Wt (lb/bbl)',R(lgsLbBbl,1))}
+        ${pr('High Gravity (%)',R(hgsPct,1))}
+        ${pr('High Gravity Wt (lb/bbl)',R(hgsLbBbl,1))}
+        ${sys==='OBM'?pr('Water Phase Chlorides (mg/L)',R(hd.clwp)):pr('Chlorides (mg/L)',R(+hck.chl||0))}
         ${sys==='OBM'?pr('<b>Excess lime</b> (1.295×Pₘ)','<b>'+R(excessLime,2)+' lb/bbl</b>'):''}
-        ${pr(sys==='OBM'?'Salt-corrected solids':'Solids (retort)',R(sys==='OBM'?corrSolids:(+hck.solids||0),1)+' %')}
-        ${pr('Avg SG of solids',R(avgSG,2))}
-        ${pr('LGS',R(lgsPct,1)+' %  ·  '+R(lgsLbBbl,1)+' lb/bbl')}
-        ${pr('HGS (barite)',R(hgsPct,1)+' %  ·  '+R(hgsLbBbl,0)+' lb/bbl')}
       </tbody></table></div>
       <div><h4 class="rep-h">Volumes &amp; circulation</h4><table class="rtbl out sum"><tbody>
         ${pr('String / annulus vol',R(strVol,1)+' / '+R(annVol,1)+' bbl')}
@@ -3211,7 +3258,7 @@ const app = {
         ${pr('Total daily losses',R(d.lossShaker+d.lossForm+d.lossOther)+' bbl')}
       </tbody></table></div>
     </div>
-    <h4 class="rep-h">Hydraulics — standpipe ${R(spp)} psi · ECD ${R(ecd,2)} ppg · ESD ${R(esd,2)} ppg</h4>
+    <h4 class="rep-h">Hydraulics — standpipe ${R(spp)} psi · ECD ${R(ecd,2)} ppg · ESD ${R(esd,2)} ppg · n/K pipe ${R(np,3)}/${R(Kp,2)} · ann ${R(na,3)}/${R(Ka,2)}</h4>
     <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Drill-string component</th><th>ID</th><th>Len</th><th>Vel ft/min</th><th>NRe</th><th>Regime</th><th>ΔP psi</th></tr></thead><tbody>
       ${pipeCalc.map(p=>`<tr><td>${p.label}</td><td>${R(p.id,3)}</td><td>${R(p.len)}</td><td>${R(p.V)}</td><td>${R(p.NRe)}</td><td>${regime(p.turb)}</td><td>${R(p.dp)}</td></tr>`).join('')}
       <tr class="rtot"><td colspan="6">Drill-string total</td><td>${R(pTot)}</td></tr></tbody></table></div>
@@ -3236,6 +3283,42 @@ const app = {
       <tr class="rtot"><td colspan="9">Daily product cost</td><td>${R(dailyCost,2)}</td></tr>
     </tbody></table></div>
     <p class="rep-sub">Concentration (lb/bbl) = cumulative used × unit size (lb) ÷ active system volume (${R(totVol,0)} bbl). Ending stock = opening + received − used. Enter cumulative used per product; new products default cum = today's usage.</p>
+    <div class="dmr-cols">
+      <div><h4 class="rep-h">Mud volume accounting (bbl)</h4><table class="rtbl out sum"><tbody>
+        ${pr('Start volume',R(d.startVol,0))}
+        ${pr('Added chemicals',R(d.addChem,1))}
+        ${pr('Added oil',R(d.addOil,1))}
+        ${pr('Added water',R(d.addWater,1))}
+        ${pr('Mud received',R(d.mudRecv,1))}
+        ${pr('Mud returned',R(d.mudRet,1))}
+        ${pr('Daily losses'+(d.lossType?' ('+d.lossType+')':''),R(dailyLoss,1))}
+        ${pr('<b>End volume</b>','<b>'+R(endVol,0)+' bbl</b>')}
+      </tbody></table></div>
+      <div><h4 class="rep-h">Mud in hole (bbl)</h4><table class="rtbl out sum"><tbody>
+        ${pr('Annulus',R(holeAnn,1))}
+        ${pr('Pipe (string)',R(holePipe,1))}
+        ${pr('Below bit',R(holeBelow,1))}
+        ${pr('<b>Total hole volume</b>','<b>'+R(holeTot,1)+' bbl</b>')}
+      </tbody></table></div>
+    </div>
+    <div class="dmr-cols">
+      <div><h4 class="rep-h">Solids control equipment</h4><div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Type</th><th>Model / Size</th><th>Hrs</th></tr></thead><tbody>
+        ${d.sce.map(r=>`<tr><td class="pl">${r.type||''}</td><td>${r.model||''}</td><td>${R(r.hrs||0)}</td></tr>`).join('')||'<tr><td colspan="3" class="pl">—</td></tr>'}
+      </tbody></table></div></div>
+      <div><h4 class="rep-h">Time distribution (hr)</h4><div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Activity</th><th>Hours</th></tr></thead><tbody>
+        ${d.timedist.map(r=>`<tr><td class="pl">${r.act||''}</td><td>${R(r.hrs||0,1)}</td></tr>`).join('')}
+        <tr class="rtot"><td>Total</td><td>${R(tdTot,1)} hr</td></tr>
+      </tbody></table></div></div>
+    </div>
+    <h4 class="rep-h">Rig tanks</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Tank</th><th>Capacity</th><th>Weight</th><th>Volume</th><th>Remarks</th><th>Class</th></tr></thead><tbody>
+      ${d.tanks.map(t=>`<tr><td class="pl">${t.name||''}</td><td>${R(t.cap||0)}</td><td>${R(t.wt||0,1)}</td><td>${R(t.vol||0)}</td><td>${t.remark||''}</td><td>${t.cls||''}</td></tr>`).join('')}
+      <tr class="rtot"><td colspan="3">Active ${R(tankSum.Active)} · Reserve ${R(tankSum.Reserve)} · Other ${R(tankSum.Other)}</td><td>${R(tankTot)}</td><td colspan="2">Total volume (bbl)</td></tr>
+    </tbody></table></div>
+    <div class="rtbl-wrap" style="margin-top:12px"><table class="rtbl out"><thead><tr><th>Cost (KWD)</th><th>Daily</th><th>Cumulative interval</th><th>Cumulative well</th></tr></thead><tbody>
+      <tr><td class="pl">Chemical cost</td><td>${R(dailyCost,2)}</td><td>${R(d.cumIntCost,2)}</td><td>${R(d.cumWellCost,2)}</td></tr>
+      <tr class="rtot"><td>Total daily cost</td><td>${R(dailyCost,2)}</td><td>${R(d.cumIntCost,2)}</td><td>${R(d.cumWellCost,2)}</td></tr>
+    </tbody></table></div>
     ${cmp}
     <p class="rep-sub">All bold/derived values are computed by the app from the measured inputs: PV/YP/LSYP, n/K, OWR, WPS (CaCl₂), <b>excess lime = 1.295×Pₘ</b>, brine content &amp; salt-corrected solids, LGS/HGS split, full multi-section pressure losses, standpipe pressure, ECD, bottoms-up &amp; bit hydraulics. Company style = ${d.company}.</p>`;
     const out=document.getElementById('dmrout'); if(out)out.innerHTML=html;
