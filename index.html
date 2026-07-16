@@ -3038,90 +3038,79 @@ const app = {
     const JP=window.jspdf; if(!JP||!JP.jsPDF){ alert('PDF engine not loaded. Open the app online once so it caches, then it works offline.'); return; }
     this.dmrCompute(); const c=this._dmrCalc, d=this.dmr, sys=c.sys;
     const R=(n,p=0)=>round(n,p), R1=n=>round(n,1), R2=n=>round(n,2);
-    const doc=new JP.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=8;
-    const AC=[15,94,110], HILITE=[212,238,234], TEALTX=[12,88,82], ZEBRA=[243,247,249], TOTAL=[221,231,240], INK=[22,30,38];
-    let y=9;
-    const ensure=n=>{ if(y+n>H-8){ doc.addPage(); y=9; } };
-    const secH=t=>{ ensure(11); doc.setFillColor(AC[0],AC[1],AC[2]); doc.roundedRect(M,y,W-2*M,6.6,1.2,1.2,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(8.4); doc.setTextColor(255,255,255); doc.text(t,M+3,y+4.5); y+=8.6; };
-    const at=o=>{ doc.autoTable(Object.assign({margin:{left:M,right:M},startY:y,theme:'grid',styles:{fontSize:7,cellPadding:1.1,textColor:INK,lineColor:[201,211,219],lineWidth:0.15,fontStyle:'bold',overflow:'linebreak'},headStyles:{fillColor:AC,textColor:255,fontStyle:'bold',fontSize:7},alternateRowStyles:{fillColor:ZEBRA}},o)); y=doc.lastAutoTable.finalY+3.5; };
+    const doc=new JP.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=6;
+    const AC=[15,94,110], HILITE=[212,238,234], TEALTX=[12,88,82], ZEBRA=[244,247,250], TOTAL=[221,231,240], INK=[22,30,38], LN=[199,209,218], LABF=[236,241,245];
+    const GAP=3, colW=(W-2*M-GAP)/2, LX=M, RX=M+colW+GAP;
+    let y=8;
+    const base={fontSize:6.1,cellPadding:0.7,textColor:INK,lineColor:LN,lineWidth:0.1,fontStyle:'bold',overflow:'linebreak'};
+    const ensure=n=>{ if(y+n>H-8){ doc.addPage(); y=8; } };
+    const bar=(x,yy,w,t)=>{ doc.setFillColor(AC[0],AC[1],AC[2]); doc.rect(x,yy,w,4.8,'F'); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(6.8); doc.text(t,x+1.6,yy+3.3); return yy+4.8; };
+    const tbl=(x,yy,w,o)=>{ doc.autoTable(Object.assign({startY:yy,margin:{left:x,right:W-(x+w)},tableWidth:w,theme:'grid',styles:base,headStyles:{fillColor:AC,textColor:255,fontStyle:'bold',fontSize:6.1},alternateRowStyles:{fillColor:ZEBRA}},o)); return doc.lastAutoTable.finalY; };
+    const kvO=body=>({ body, columnStyles:{0:{fontStyle:'bold',fillColor:LABF,halign:'left'},1:{halign:'right'}} });
+    const pair=(lT,lo,rT,ro,estH)=>{ ensure(estH||40); const y0=y; const lf=tbl(LX,bar(LX,y0,colW,lT),colW,lo); const rf=tbl(RX,bar(RX,y0,colW,rT),colW,ro); y=Math.max(lf,rf)+3; };
+    const full=(t,o,estH)=>{ ensure(estH||16); y=tbl(M,bar(M,y,W-2*M,t),W-2*M,o)+3; };
     const lastCk=d.checks[d.checks.length-1]||{};
-    // title banner
-    doc.setFillColor(AC[0],AC[1],AC[2]); doc.roundedRect(M,y,W-2*M,15.5,1.6,1.6,'F');
-    doc.setFillColor(255,199,68); doc.rect(M,y,2.4,15.5,'F');   // amber accent edge
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('DAILY MUD REPORT',M+6,y+7);
-    doc.setFontSize(9); doc.setTextColor(226,242,240);
-    doc.text(`${d.well||'Well ___'}     Rig ${d.rig||'___'}     Report ${d.repno||'__'}     ${d.date||''}     ${sys==='WBM'?'Water-based (WBM)':'Oil-based (OBM/NAF)'}`,M+6,y+12.4);
-    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(210,232,230);
-    doc.text(`MD ${R(d.md)} / TVD ${R(d.tvd)} ft     ${d.operator||''} ${d.contractor?'/ '+d.contractor:''}     ${d.formation||''}     ${d.activity||''}`,W-M-4,y+7,{align:'right'});
-    y+=19.5;
-    // mud properties
-    secH(`Mud properties — ${sys==='WBM'?'Water-based (WBM)':'Oil-based (OBM / NAF)'} · ${d.checks.length} mud check${d.checks.length>1?'s':''}`);
+    // ===== title banner =====
+    doc.setFillColor(AC[0],AC[1],AC[2]); doc.roundedRect(M,y,W-2*M,13,1.4,1.4,'F');
+    doc.setFillColor(255,199,68); doc.rect(M,y,2,13,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text((sys==='WBM'?'WBM':'OBM')+' Daily Drilling Fluids Report',M+5,y+6);
+    doc.setFontSize(11); doc.text('No. '+(d.repno||'—'),W-M-3,y+6,{align:'right'});
+    doc.setFontSize(8); doc.setTextColor(224,240,238);
+    doc.text(`${d.well||'Well ___'}    ·    Rig ${d.rig||'___'}    ·    ${d.date||''}    ·    ${d.field||''}`,M+5,y+10.5);
+    y+=16;
+    // ===== info grid =====
+    doc.autoTable({ startY:y, margin:{left:M,right:M}, theme:'grid', body:[
+      ['Well Name',d.well||'','Rig Name',d.rig||'','Field / Block',d.field||'','Report Date',d.date||''],
+      ['Operator',d.operator||'','Contractor',d.contractor||'','Formation',d.formation||'','Location',''],
+      ['Operator Rep','','Contractor Rep','','Inc / Azi',R(d.inc)+' / '+R(d.azi)+'°','MD / TVD',R(d.md)+' / '+R(d.tvd)],
+      ['Spud Date','','Fluid / Mud type',d.mudtype||'','Activity',d.activity||'','Bit depth',R(d.bitdepth)+' ft'] ],
+      styles:{fontSize:6,cellPadding:0.7,textColor:INK,lineColor:LN,lineWidth:0.1,overflow:'linebreak'},
+      columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:20},1:{cellWidth:28},2:{fontStyle:'bold',fillColor:LABF,cellWidth:22},3:{cellWidth:28},4:{fontStyle:'bold',fillColor:LABF,cellWidth:22},5:{cellWidth:26},6:{fontStyle:'bold',fillColor:LABF,cellWidth:19},7:{cellWidth:'auto'}} });
+    y=doc.lastAutoTable.finalY+3;
+    // ===== 3-up: Drill String | Annulus | Bit/Pump =====
+    { const u=W-2*M, g=2, w1=u*0.42, w2=u*0.34, w3=u-w1-w2-2*g, x1=M, x2=M+w1+g, x3=M+w1+w2+2*g, y0=y;
+      const f1=tbl(x1,bar(x1,y0,w1,'Drill String'),w1,{ head:[['Component','OD','ID','Length']], body:d.pipes.map(p=>[p.label,R(p.od,3),R(p.id,3),R(p.len)]), columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'} });
+      const f2=tbl(x2,bar(x2,y0,w2,'Annulus / Open Hole'),w2,{ head:[['Section','Hole','Pipe','Len']], body:d.anns.map(a=>[a.label,R(a.hole,3),R(a.pipe,3),R(a.len)]), columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'} });
+      const f3=tbl(x3,bar(x3,y0,w3,'Bit / Pump'),w3,{ body:[['Bit size',R(d.bit)+' in'],['Nozzles',d.noz.filter(n=>+n>0).join(', ')+' /32'],['TFA',R2(c.tfa)+' in²'],['Flow rate',R(d.flow)+' gpm'],['Pump',R(d.liner)+'×'+R(d.stroke)+'@'+R(d.spm)]], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,halign:'left'},1:{halign:'right'}} });
+      y=Math.max(f1,f2,f3)+3; }
+    // ===== Mud properties (full width) =====
     const rows=DMR_ROWS[sys];
-    at({ head:[['Mud property',...d.checks.map((x,i)=>'Check '+(i+1))]],
+    full(`Mud Properties — ${sys==='WBM'?'Water-based (WBM)':'Oil-based (OBM/NAF)'} · ${d.checks.length} check${d.checks.length>1?'s':''}`,{
+      head:[['Mud property',...d.checks.map((x,i)=>'Check '+(i+1))]],
       body: rows.map(r=>[ r[1]+(r[2]?' ('+r[2]+')':''), ...d.checks.map((x,i)=>String(dmrCell(r,x,c.derivs[i]))) ]),
-      columnStyles:{0:{halign:'left',fontStyle:'bold',cellWidth:58}}, bodyStyles:{halign:'right'},
-      didParseCell:h=>{ if(h.section==='body'){ const r=rows[h.row.index]; if(r&&r[3]){ h.cell.styles.fillColor=HILITE; h.cell.styles.textColor=TEALTX; } if(h.column.index===0){ h.cell.styles.halign='left'; if(!(r&&r[3]))h.cell.styles.fillColor=[248,249,251]; } } } });
-    // solids analysis + volumes
-    secH('Solids analysis   ·   Volumes & circulation');
-    const sa = sys==='OBM'? [
-      ['Salt Wt (%wt)',R1(c.wps_wt),'String / annulus vol (bbl)',R1(c.strVol)+' / '+R1(c.annVol)],
-      ['Salt Conc Whole Mud (lb/bbl)',R1(c.saltConcWM),'Active system volume (bbl)',R(c.totVol)],
-      ['Adjusted Solids (%vol)',R1(c.corrSolids),'Pump output (bbl/stk)',R(c.bblStk,4)],
-      ['Oil / Water Ratio',c.owrO+' / '+c.owrW,'Surface → bit (stk / min)',R(c.downStk)+' / '+R1(c.downMin)],
-      ['Avg SG Solids',R2(c.avgSG),'Bottoms-up (stk / min)',R(c.buStk)+' / '+R1(c.buMin)],
-      ['Low Gravity (% · lb/bbl)',R1(c.lgsPct)+' · '+R1(c.lgsLbBbl),'Full circulation (stk / min)',R(c.fullStk)+' / '+R1(c.fullMin)],
-      ['High Gravity (% · lb/bbl)',R1(c.hgsPct)+' · '+R(c.hgsLbBbl),'Annular velocity (ft/min)',R(c.annVmin)+' – '+R(c.annVmax)],
-      ['Water Phase Chlorides (mg/L)',R(c.hd.clwp),'Total daily losses (bbl)',R1(c.dailyLoss)],
-      ['Excess lime 1.295×Pₘ (lb/bbl)',R2(c.excessLime),'',''] ] : [
-      ['Solids (%vol)',R1(+lastCk.solids||0),'String / annulus vol (bbl)',R1(c.strVol)+' / '+R1(c.annVol)],
-      ['Avg SG Solids',R2(c.avgSG),'Active system volume (bbl)',R(c.totVol)],
-      ['Low Gravity (% · lb/bbl)',R1(c.lgsPct)+' · '+R1(c.lgsLbBbl),'Bottoms-up (stk / min)',R(c.buStk)+' / '+R1(c.buMin)],
-      ['High Gravity (% · lb/bbl)',R1(c.hgsPct)+' · '+R(c.hgsLbBbl),'Annular velocity (ft/min)',R(c.annVmin)+' – '+R(c.annVmax)],
-      ['Chlorides (mg/L)',R(+lastCk.chl||0),'Total daily losses (bbl)',R1(c.dailyLoss)] ];
-    at({ body:sa, columnStyles:{0:{fontStyle:'bold',cellWidth:68},1:{halign:'right',cellWidth:60},2:{fontStyle:'bold',cellWidth:68},3:{halign:'right'}} });
-    // hydraulics
-    secH(`Hydraulics — SPP ${R(c.spp)} psi · ECD ${R2(c.ecd)} ppg · ESD ${R2(c.esd)} ppg · n/K pipe ${R(c.np,3)}/${R2(c.Kp)} · ann ${R(c.na,3)}/${R2(c.Ka)}`);
-    at({ head:[['Drill-string','ID','Len','Vel ft/min','NRe','Regime','ΔP psi']],
-      body: c.pipeCalc.map(p=>[p.label,R(p.id,3),R(p.len),R(p.V),R(p.NRe),p.turb?'Turb':'Lam',R(p.dp)]).concat([['Drill-string total','','','','','',R(c.pTot)]]),
-      columnStyles:{0:{halign:'left',cellWidth:60}}, bodyStyles:{halign:'right'},
-      didParseCell:h=>{ if(h.section==='body'&&h.row.index===c.pipeCalc.length){ h.cell.styles.fillColor=TOTAL; h.cell.styles.fontStyle='bold'; if(h.column.index===0)h.cell.styles.halign='left'; } } });
-    at({ head:[['Annulus','Hole','Pipe','Len','AV ft/min','NRe','Regime','ΔP psi']],
-      body: c.annCalc.map(a=>[a.label,R(a.hole,3),R(a.pipe,3),R(a.len),R(a.V),R(a.NRe),a.turb?'Turb':'Lam',R(a.dp)]).concat([['Annular total','','','','','','',R(c.aTot)]]),
-      columnStyles:{0:{halign:'left',cellWidth:56}}, bodyStyles:{halign:'right'},
-      didParseCell:h=>{ if(h.section==='body'&&h.row.index===c.annCalc.length){ h.cell.styles.fillColor=TOTAL; h.cell.styles.fontStyle='bold'; if(h.column.index===0)h.cell.styles.halign='left'; } } });
-    at({ body:[['Standpipe pressure',R(c.spp)+' psi','System HHP',R(c.hhpSys)+' hp','Bit ΔP',R(c.pbit)+' psi ('+R(c.pctBit)+'%)'],
-               ['Bit HHP',R(c.hhpb)+' hp','HSI',R2(c.hsi)+' hp/in²','Jet velocity',R(c.vn)+' ft/s'],
-               ['TFA',R(c.tfa,3)+' in²','Jet impact',R(c.impact)+' lbf','Pressure %','sf '+R(c.pctSurf)+' / st '+R(c.pctStr)+' / bit '+R(c.pctBit)+' / an '+R(c.pctAnn)]],
-      columnStyles:{0:{fontStyle:'bold'},2:{fontStyle:'bold'},4:{fontStyle:'bold'}} });
-    // operations narrative
-    const blk=(t,x)=>{ if(x&&x.trim()){ secH(t); doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(40); const ls=doc.splitTextToSize(x.trim(),W-2*M-2); ensure(ls.length*3.4+3); doc.text(ls,M+1,y+2); y+=ls.length*3.4+4; } };
-    blk('Rig operations (last 24 hr)',d.remarks); blk('Fluid treatments',d.treatments); blk('Forecast / next operation',d.forecast);
-    // inventory
-    secH(`Inventory, concentration & cost — active volume ${R(c.totVol)} bbl`);
+      columnStyles:{0:{halign:'left',cellWidth:54}}, bodyStyles:{halign:'right'},
+      didParseCell:h=>{ if(h.section==='body'){ const r=rows[h.row.index]; if(r&&r[3]){ h.cell.styles.fillColor=HILITE; h.cell.styles.textColor=TEALTX; } if(h.column.index===0){ h.cell.styles.halign='left'; h.cell.styles.fillColor=(r&&r[3])?HILITE:LABF; } } } },24);
+    // ===== paired panels =====
+    const avb=[['Start volume',R(d.startVol)],['Product / chem added',R1(d.addChem)],['Oil added',R1(d.addOil)],['Water added',R1(d.addWater)],['Mud received',R1(d.mudRecv)],['Mud returned',R1(d.mudRet)],['Daily losses'+(d.lossType?' ('+d.lossType+')':''),R1(c.dailyLoss)],['End volume',R(c.endVol)]];
+    const saR = sys==='OBM'? [['Salt Wt (%wt)',R1(c.wps_wt)],['Salt Conc W.Mud (lb/bbl)',R1(c.saltConcWM)],['Adjusted Solids (%vol)',R1(c.corrSolids)],['Oil / Water Ratio',c.owrO+' / '+c.owrW],['Avg SG Solids',R2(c.avgSG)],['Low Gravity (%·lb/bbl)',R1(c.lgsPct)+' · '+R1(c.lgsLbBbl)],['High Gravity (%·lb/bbl)',R1(c.hgsPct)+' · '+R(c.hgsLbBbl)],['Water Phase Cl⁻ (mg/L)',R(c.hd.clwp)],['Excess lime (lb/bbl)',R2(c.excessLime)]]
+      : [['Solids (%vol)',R1(+lastCk.solids||0)],['Avg SG Solids',R2(c.avgSG)],['Low Gravity (%·lb/bbl)',R1(c.lgsPct)+' · '+R1(c.lgsLbBbl)],['High Gravity (%·lb/bbl)',R1(c.hgsPct)+' · '+R(c.hgsLbBbl)],['Chlorides (mg/L)',R(+lastCk.chl||0)]];
+    pair('Active Volume Balance (bbl)',kvO(avb),'Solids Analysis',kvO(saR),55);
+    const vsum=[['Active pit volume',R(d.pitActive)],['Reserve volume',R(d.pitReserve)],['String / annulus vol',R1(c.strVol)+' / '+R1(c.annVol)],['Total circ. volume',R(c.totVol)],['Annulus (in hole)',R1(c.holeAnn)],['Pipe / below bit',R1(c.holePipe)+' / '+R1(c.holeBelow)],['Total hole volume',R1(c.holeTot)]];
+    const hyd=[['Standpipe pressure',R(c.spp)+' psi'],['ECD / ESD',R2(c.ecd)+' / '+R2(c.esd)+' ppg'],['Bit ΔP',R(c.pbit)+' psi ('+R(c.pctBit)+'%)'],['Jet vel / HSI',R(c.vn)+' ft/s · '+R2(c.hsi)],['Ann. vel (min–max)',R(c.annVmin)+'–'+R(c.annVmax)+' ft/min'],['Bottoms-up',R(c.buStk)+' stk · '+R1(c.buMin)+' min'],['n/K pipe·ann',R(c.np,3)+'/'+R2(c.Kp)+' · '+R(c.na,3)+'/'+R2(c.Ka)]];
+    pair('Volume Summary & Mud in Hole',kvO(vsum),'Circulation & Hydraulics',kvO(hyd),50);
+    pair('Solids Control Equipment',{ head:[['Type','Model','Hrs']], body:d.sce.map(r=>[r.type||'',r.model||'',R(r.hrs||0)]), columnStyles:{0:{halign:'left'},1:{halign:'left'},2:{halign:'right'}} },
+         'Time Distribution (hr)',{ head:[['Activity','Hrs']], body:d.timedist.map(r=>[r.act||'',R1(r.hrs||0)]).concat([['Total',R1(c.tdTot)]]), columnStyles:{0:{halign:'left'},1:{halign:'right'}}, didParseCell:h=>{ if(h.section==='body'&&h.row.index===d.timedist.length)h.cell.styles.fillColor=TOTAL; } },42);
+    // ===== Product usage / inventory (full) =====
     const pUsed=p=>(+p.used|| +p.qty||0),pStart=p=>(+p.start||0),pRecv=p=>(+p.recv||0),pCum=p=>p.cum!==undefined?(+p.cum||0):(+p.used|| +p.qty||0),pSize=p=>(+p.size||0),pPrice=p=>(+p.price||0);
-    at({ head:[['Product','Unit','Size lb','Opening','Recv','Used','Ending','Cum','Conc lb/bbl','Daily cost']],
-      body: d.prods.map(p=>{ const end=pStart(p)+pRecv(p)-pUsed(p), conc=c.totVol>0?pCum(p)*pSize(p)/c.totVol:0; return [p.name,p.unit||'',R(pSize(p)),R1(pStart(p)),R1(pRecv(p)),R1(pUsed(p)),R1(end),R1(pCum(p)),R2(conc),R2(pUsed(p)*pPrice(p))]; }).concat([['Daily product cost','','','','','','','','',R2(c.dailyCost)]]),
-      columnStyles:{0:{halign:'left',cellWidth:60}}, bodyStyles:{halign:'right'},
-      didParseCell:h=>{ if(h.section==='body'){ if(h.column.index===8) h.cell.styles.fillColor=HILITE; if(h.row.index===d.prods.length){ h.cell.styles.fillColor=TOTAL; h.cell.styles.fontStyle='bold'; } if(h.column.index===0)h.cell.styles.halign='left'; } } });
-    // volume accounting + mud in hole
-    secH('Mud volume accounting (bbl)   ·   Mud in hole (bbl)');
-    at({ body:[['Start volume',R(d.startVol),'Annulus',R1(c.holeAnn)],['Added chem / oil / water',R1(d.addChem)+' / '+R1(d.addOil)+' / '+R1(d.addWater),'Pipe (string)',R1(c.holePipe)],['Mud received / returned',R1(d.mudRecv)+' / '+R1(d.mudRet),'Below bit',R1(c.holeBelow)],['Daily losses'+(d.lossType?' ('+d.lossType+')':''),R1(c.dailyLoss),'Total hole volume',R1(c.holeTot)],['End volume',R(c.endVol),'','']],
-      columnStyles:{0:{fontStyle:'bold',cellWidth:70},1:{halign:'right',cellWidth:60},2:{fontStyle:'bold',cellWidth:60},3:{halign:'right'}} });
-    // SCE + time
-    secH('Solids control equipment');
-    at({ head:[['Type','Model / Size','Hrs']], body:d.sce.map(r=>[r.type||'',r.model||'',R(r.hrs||0)]), columnStyles:{0:{halign:'left'},1:{halign:'left'},2:{halign:'right'}} });
-    secH('Time distribution (hr)');
-    at({ head:[['Activity','Hours']], body:d.timedist.map(r=>[r.act||'',R1(r.hrs||0)]).concat([['Total',R1(c.tdTot)]]), columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'} });
-    // rig tanks
-    secH('Rig tanks');
-    at({ head:[['Tank','Capacity','Weight','Volume','Remarks','Class']], body:d.tanks.map(t=>[t.name||'',R(t.cap||0),R1(t.wt||0),R(t.vol||0),t.remark||'',t.cls||'']).concat([['Active '+R(c.tankSum.Active)+' · Reserve '+R(c.tankSum.Reserve)+' · Other '+R(c.tankSum.Other),'','',R(c.tankTot),'Total (bbl)','']]), columnStyles:{0:{halign:'left'},4:{halign:'left'},5:{halign:'left'}}, bodyStyles:{halign:'right'} });
-    // cost
-    secH('Cost roll-up (KWD)');
-    at({ head:[['Cost','Daily','Cumulative interval','Cumulative well']], body:[['Chemical cost',R2(c.dailyCost),R2(d.cumIntCost),R2(d.cumWellCost)],['Total daily cost',R2(c.dailyCost),R2(d.cumIntCost),R2(d.cumWellCost)]], columnStyles:{0:{halign:'left',fontStyle:'bold'}}, bodyStyles:{halign:'right'} });
-    // footers
+    full('Product Usage — Inventory & Concentration (active vol '+R(c.totVol)+' bbl)',{
+      head:[['Product','Unit','Size lb','Opening','Recv','Used','Ending','Cum','Conc lb/bbl','Daily cost']],
+      body:d.prods.map(p=>{ const end=pStart(p)+pRecv(p)-pUsed(p),conc=c.totVol>0?pCum(p)*pSize(p)/c.totVol:0; return [p.name,p.unit||'',R(pSize(p)),R1(pStart(p)),R1(pRecv(p)),R1(pUsed(p)),R1(end),R1(pCum(p)),R2(conc),R2(pUsed(p)*pPrice(p))]; }).concat([['Daily product cost','','','','','','','','',R2(c.dailyCost)]]),
+      columnStyles:{0:{halign:'left',cellWidth:46}}, bodyStyles:{halign:'right'},
+      didParseCell:h=>{ if(h.section==='body'){ if(h.column.index===8) h.cell.styles.fillColor=HILITE; if(h.row.index===d.prods.length)h.cell.styles.fillColor=TOTAL; if(h.column.index===0)h.cell.styles.halign='left'; } } },20);
+    // ===== Rig tanks (full) =====
+    full('Rig Tanks',{ head:[['Tank','Capacity','Weight','Volume','Remarks','Class']], body:d.tanks.map(t=>[t.name||'',R(t.cap||0),R1(t.wt||0),R(t.vol||0),t.remark||'',t.cls||'']).concat([['Active '+R(c.tankSum.Active)+' · Reserve '+R(c.tankSum.Reserve)+' · Other '+R(c.tankSum.Other),'','',R(c.tankTot),'Total (bbl)','']]), columnStyles:{0:{halign:'left'},4:{halign:'left'},5:{halign:'left'}}, bodyStyles:{halign:'right'}, didParseCell:h=>{ if(h.section==='body'&&h.row.index===d.tanks.length)h.cell.styles.fillColor=TOTAL; } },16);
+    // ===== Hydraulics detail (full) =====
+    full('Hydraulics — pressure losses',{ head:[['Drill-string','ID','Len','Vel ft/min','NRe','Regime','ΔP psi']], body:c.pipeCalc.map(p=>[p.label,R(p.id,3),R(p.len),R(p.V),R(p.NRe),p.turb?'Turb':'Lam',R(p.dp)]).concat([['Drill-string total','','','','','',R(c.pTot)]]), columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'}, didParseCell:h=>{ if(h.section==='body'&&h.row.index===c.pipeCalc.length)h.cell.styles.fillColor=TOTAL; } },16);
+    y=tbl(M,y,W-2*M,{ head:[['Annulus','Hole','Pipe','Len','AV ft/min','NRe','Regime','ΔP psi']], body:c.annCalc.map(a=>[a.label,R(a.hole,3),R(a.pipe,3),R(a.len),R(a.V),R(a.NRe),a.turb?'Turb':'Lam',R(a.dp)]).concat([['Annular total','','','','','','',R(c.aTot)]]), columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'}, didParseCell:h=>{ if(h.section==='body'&&h.row.index===c.annCalc.length)h.cell.styles.fillColor=TOTAL; } })+3;
+    // ===== Operational comments (full) =====
+    const blk=(t,x)=>{ if(x&&x.trim()){ ensure(12); y=bar(M,y,W-2*M,t); doc.setFont('helvetica','normal'); doc.setFontSize(6.6); doc.setTextColor(40); const ls=doc.splitTextToSize(x.trim(),W-2*M-3); ensure(ls.length*3.1+3); doc.text(ls,M+1.5,y+3); y+=ls.length*3.1+4; } };
+    blk('Recommended Treatment',d.treatments); blk('Rig Operations / Remarks',d.remarks); blk('Forecast / Operational Comments',d.forecast);
+    // ===== Cost (full) =====
+    full('Cost Roll-up (KWD)',{ head:[['Cost','Daily','Cumulative interval','Cumulative well']], body:[['Chemical cost',R2(c.dailyCost),R2(d.cumIntCost),R2(d.cumWellCost)],['Total daily cost',R2(c.dailyCost),R2(d.cumIntCost),R2(d.cumWellCost)]], columnStyles:{0:{halign:'left'}}, bodyStyles:{halign:'right'} },14);
+    // ===== footers =====
     const pc=doc.internal.getNumberOfPages();
-    for(let i=1;i<=pc;i++){ doc.setPage(i); doc.setFontSize(6.5); doc.setTextColor(140); doc.text('Generated by Mud Engineer Pro',M,H-4); doc.text('Page '+i+' / '+pc,W-M,H-4,{align:'right'}); }
+    for(let i=1;i<=pc;i++){ doc.setPage(i); doc.setFontSize(6); doc.setTextColor(140); doc.setFont('helvetica','normal'); doc.text('Generated by Mud Engineer Pro',M,H-4); doc.text('Page '+i+' / '+pc,W-M,H-4,{align:'right'}); }
     const nm=('DMR_'+(d.well||'well')+'_'+(d.date||'')+'_'+(d.repno?'No'+d.repno:'')).replace(/[^\w\-]+/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'DMR';
     doc.save(nm+'.pdf');
   },
