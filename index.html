@@ -338,6 +338,22 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .rtbl.out tbody tr:nth-child(even) td,.rtbl.out tr:nth-child(even) td{background:var(--panel2)}
 .rtbl.out .rtot td{background:var(--panel3)!important;font-weight:750;color:var(--brand2);border-top:2px solid var(--line2)}
 .rtbl.out.sum td{border-top:1px solid var(--line)}
+/* DMR generator / verify */
+#dmrout{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.rf-note{font-weight:500;text-transform:none;letter-spacing:0;color:var(--faint);font-size:10.5px;margin-left:2px}
+.dmr-band{border-left:5px solid var(--brand);background:var(--bg-2);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.dmr-brand{font-size:12px;font-weight:800;letter-spacing:.3px}
+.dmr-title{font-size:19px;font-weight:820;margin:2px 0 4px}
+.dmr-title span{font-size:12px;font-weight:600;color:var(--muted);border:1px solid var(--line2);border-radius:20px;padding:1px 9px;vertical-align:middle;margin-left:6px}
+.dmr-meta{font-size:12px;color:var(--muted);line-height:1.5}
+.dmr-cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:820px){.dmr-cols{grid-template-columns:1fr}}
+.rtbl.out .dv{text-align:right;font-family:var(--mono);color:var(--text);white-space:normal}
+.vsec{border-color:var(--accent)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent) inset}
+.vtag{font-size:9px;background:var(--accent);color:#001;border-radius:9px;padding:0 6px;font-weight:800;text-transform:uppercase;vertical-align:middle}
+.vok{color:var(--accent);font-weight:750}
+.vbad{color:var(--danger);font-weight:800}
+.vna{color:var(--faint)}
 .rtbl.out.sum td:nth-child(odd){color:var(--muted)}
 .rtbl.out.sum td:nth-child(even){font-weight:700;font-family:var(--mono)}
 .turb{color:var(--brand2);font-weight:700}.lam{color:var(--accent);font-weight:700}
@@ -2428,6 +2444,20 @@ const app = {
            {label:'DP × Open Hole', hole:8.5, pipe:5, len:5000},
            {label:'DC × Open Hole', hole:8.5, pipe:6.5, len:1000} ]
   }),
+  dmr: lsGet('mep_dmr', {
+    company:'CPVEN', well:'', rig:'', repno:'', date:'', operator:'KOC', contractor:'', field:'', formation:'', engineer:'',
+    activity:'Drilling', mudtype:'OBM 70/30', md:10000, tvd:9500, inc:0, azi:0, bitdepth:10000,
+    bit:8.5, noz:[12,12,12,0,0,0], flow:600, liner:6.5, stroke:12, eff:95, spm:60,
+    mw:12.5, fv:60, r600:60, r300:40, r200:30, r100:18, r6:9, r3:6,
+    apifl:0, hthp:2.4, solids:20, oil:57, water:23, chl:39000, es:540, pf:0, mf:0, pm:3.7, ph:0, mbt:0, hard:0, lime:5, sysType:'OBM',
+    idpipe:4.276, odpipe:5, holed:8.5,
+    pitActive:655, pitReserve:300, lossShaker:15, lossForm:78, lossOther:6, dailyProdCost:0,
+    prods:[ {name:'BARITE 4.1 SG', unit:'mt', size:1500, qty:26, price:81.93},
+            {name:'CaCO₃ (F&M)', unit:'sx', size:2200, qty:3, price:33.9},
+            {name:'Sulphonated Asphalt', unit:'sx', size:100, qty:13, price:18} ],
+    // reported values for VERIFY mode (blank = generate mode)
+    vPV:'', vYP:'', vLSYP:'', vOWR:'', vWPS:'', vAV:'', vECD:'', vBU:'', vBitdp:''
+  }),
   init(){
     if(localStorage.getItem('mep_theme')==='light') document.documentElement.setAttribute('data-theme','light');
     this.buildNav();
@@ -2472,6 +2502,8 @@ const app = {
     // Reports
     h+=`<div class="navgroup" data-g="reports"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:#ff9d2e">${svgi('report')}</span>Reports<span class="arw">▼</span></div><div class="items">`;
     h+=`<div class="navitem" data-search="hydraulics report circulating pressure loss ecd bit" data-id="report:hyd" onclick="app.go('report:hyd')">Hydraulics Report</div>`;
+    h+=`<div class="navitem" data-search="daily mud report dmr generator generate" data-id="report:dmr" onclick="app.go('report:dmr')">DMR Generator</div>`;
+    h+=`<div class="navitem" data-search="dmr verify check calculations upload" data-id="report:verify" onclick="app.go('report:verify')">DMR Verify</div>`;
     h+=`</div></div>`;
     // Training courses
     h+=`<div class="navgroup collapsed" data-g="training"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:${catColor('Training')}">${svgi('cap')}</span>Training Courses<span class="arw">▼</span></div><div class="items">`;
@@ -2521,6 +2553,8 @@ const app = {
     else if(route.startsWith('man:')){ const id=route.slice(4); const m=MANUAL.find(x=>x.id===id); this.setActive(id); view.innerHTML='<div class="doc fade">'+m.html+'</div>'; this.head(m.name,'Manual','Reference — study material'); window.scrollTo(0,0); document.getElementById('main').scrollTo(0,0);}
     else if(route.startsWith('train:')){ const id=route.slice(6); const t=TRAINING.find(x=>x.id===id); this.setActive(id); this.renderCourse(view,t); this.head(t.name,'Training Course',t.desc); document.getElementById('main').scrollTo(0,0);}
     else if(route==='report:hyd'){ this.setActive('report:hyd'); this.renderReport(view); this.head('Hydraulics Report','Reports','Full circulating-system hydraulics analysis'); document.getElementById('main').scrollTo(0,0);}
+    else if(route==='report:dmr'){ this.setActive('report:dmr'); this.renderDMR(view,false); this.head('Daily Mud Report','Reports','Generate a full DMR — enter data, print a filed record'); document.getElementById('main').scrollTo(0,0);}
+    else if(route==='report:verify'){ this.setActive('report:verify'); this.renderDMR(view,true); this.head('DMR Verify','Reports','Enter a DMR — the app recomputes and flags every calculation'); document.getElementById('main').scrollTo(0,0);}
   },
   head(t,c,s){ document.getElementById('ptitle').textContent=t; document.getElementById('crumb').textContent=c; document.getElementById('psub').textContent=s||''; },
   findCalc(id){ for(const cat in CALC){const f=CALC[cat].find(c=>c.id===id); if(f)return f;} },
@@ -2548,7 +2582,7 @@ const app = {
     h+=`<div class="sectlabel"><span class="si" style="--c:#3d7bff">${svgi('compass')}</span>Browse</div><div class="hubgrid">`;
     h+=hub('#3d7bff', svgi('calc'), 'Calculations', 'Field calculators across '+catList().length+' categories — density, hydraulics, chemistry, well control &amp; more.', nCalc+' tools', 'hub:calc');
     h+=hub('#6d5cff', svgi('cap'), 'Mud School', 'Learn the whole M-I manual, chapter by chapter, in simple language with quizzes.', TRAINING.length+' courses', 'hub:train');
-    h+=hub('#ff9d2e', svgi('report'), 'Reports', 'Build a full, printable well hydraulics report — pressure losses, bit, ECD.', 'Hydraulics', 'report:hyd');
+    h+=hub('#ff9d2e', svgi('report'), 'Reports', 'Hydraulics report, full Daily Mud Report generator &amp; a DMR calculation verifier.', '3 reports', 'report:dmr');
     h+=hub('#7d93ff', svgi('book'), 'Reference Manual', 'Quick-reference chapters on every drilling-fluids topic and the formula sheet.', MANUAL.length+' chapters', 'hub:manual');
     h+=`</div>`;
     view.innerHTML=h;
@@ -2805,6 +2839,182 @@ const app = {
     } else { const ff=U.units.find(u=>u[0]===f)[1]; const base=val/ff; rows=U.units.map(([u,fac])=>[u,base*fac]); }
     const out=rows.map(([u,v])=>`<div class="convrow ${u===f?'src':''}"><span class="cu">${u}</span><span class="cv">${fmt(v)}</span></div>`).join('');
     const o=document.getElementById('convout'); if(o)o.innerHTML=out;
+  },
+  /* ===== DAILY MUD REPORT — generator + verifier (shared compute) ===== */
+  dmrCos:{
+    'CPVEN':{title:'Daily Mud Report', sub:'Oil-based', brand:'CPVEN Drilling &amp; Completion Fluids', c:'#00b34d'},
+    'MI-SWACO':{title:'Daily Drilling Fluids Report', sub:'Water / Oil-based', brand:'M-I SWACO — Kuwait Drilling Fluids &amp; Oil Services SAK', c:'#e2231a'},
+    'SCOMI':{title:'Kuwait Daily Drilling Fluids Report', sub:'', brand:'Scomi Oil Tools Middle East', c:'#8a2233'},
+    'UQDF/UOP':{title:'Daily Drilling Fluids Report', sub:'', brand:'Ultra Q Drilling Fluids (UOP)', c:'#1a9e57'},
+    'Baker Hughes':{title:'Daily Mud Report', sub:'', brand:'Baker Hughes Drilling Fluids', c:'#00a94f'},
+    'Generic':{title:'Daily Mud Report', sub:'', brand:'Mud Engineer Pro', c:'#3d7bff'}
+  },
+  dmrSet(k,v){ this.dmr[k]=v; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); },
+  dmrProdRow(i,f,v){ this.dmr.prods[i][f]=(f==='name'||f==='unit')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
+  dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,qty:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrDelProd(i){ this.dmr.prods.splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  renderDMR(view,verify){
+    this._dmrVerify=verify; const d=this.dmr;
+    const co=this.dmrCos[d.company]||this.dmrCos.Generic;
+    const F=(lbl,id,unit)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="d_${id}" value="${d[id]!==undefined?d[id]:''}" oninput="app.dmrCompute()"/>${unit?`<span class="unit">${unit}</span>`:''}</div></div>`;
+    const T=(lbl,id)=>`<div class="rf"><label>${lbl}</label><div class="inp"><input id="d_${id}" value="${d[id]||''}" oninput="app.dmrSet('${id}',this.value)" placeholder="—"/></div></div>`;
+    const sel=(lbl,id,opts)=>`<div class="rf"><label>${lbl}</label><div class="inp"><select id="d_${id}" onchange="app.dmrSet('${id}',this.value);app.renderDMR(document.getElementById('view'),${!!verify})">${opts.map(o=>`<option ${d[id]===o?'selected':''}>${o}</option>`).join('')}</select></div></div>`;
+    let prodRows=d.prods.map((p,i)=>`<tr>
+      <td><input class="ri" value="${p.name}" oninput="app.dmrProdRow(${i},'name',this.value)"/></td>
+      <td><input class="ri" value="${p.unit}" oninput="app.dmrProdRow(${i},'unit',this.value)"/></td>
+      <td><input class="ri n" value="${p.qty}" oninput="app.dmrProdRow(${i},'qty',this.value)"/></td>
+      <td><input class="ri n" value="${p.price}" oninput="app.dmrProdRow(${i},'price',this.value)"/></td>
+      <td class="rx"><button onclick="app.dmrDelProd(${i})" title="Remove">✕</button></td></tr>`).join('');
+    const vfld=(lbl,id)=>`<div class="rf"><label>${lbl} <span class="vtag">reported</span></label><div class="inp"><input id="d_${id}" value="${d[id]||''}" oninput="app.dmrCompute()" placeholder="from report"/></div></div>`;
+    view.innerHTML=`<div class="rep fade">
+      <div class="rep-top">
+        <div><h3>${verify?'✔️ DMR Verify':'📋 DMR Generator'}</h3><p>${verify?'Enter the report\'s inputs AND its printed results — the app recomputes every derived value and flags mismatches.':'Enter the day\'s data — the report builds live below. Pick a company style and print for a filed record.'}</p></div>
+        <button class="btn" onclick="window.print()">🖨️ Print / PDF</button>
+      </div>
+      <div class="rep-in">
+        <div class="rf-sec"><div class="rf-h">Company &amp; header</div><div class="rf-row">
+          ${sel('Company style','company',Object.keys(this.dmrCos))}
+          ${T('Well','well')}${T('Rig','rig')}${T('Report No.','repno')}${T('Date','date')}
+          ${T('Operator','operator')}${T('Contractor','contractor')}${T('Field','field')}${T('Formation','formation')}${T('Engineer','engineer')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Depths &amp; activity</div><div class="rf-row">
+          ${F('MD','md','ft')}${F('TVD','tvd','ft')}${F('Bit depth','bitdepth','ft')}${F('Inc','inc','°')}${F('Azi','azi','°')}${T('Activity','activity')}${T('Mud type','mudtype')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Bit, pump &amp; flow</div><div class="rf-row">
+          ${F('Bit size','bit','in')}${F('Flow rate','flow','gpm')}${F('Liner','liner','in')}${F('Stroke','stroke','in')}${F('Pump eff.','eff','%')}${F('SPM','spm','')}
+          ${[0,1,2,3,4,5].map(i=>`<div class="rf"><label>Nozzle ${i+1}</label><div class="inp"><input id="d_noz${i}" value="${d.noz[i]}" oninput="app.dmrCompute()"/><span class="unit">32nd</span></div></div>`).join('')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Mud properties</div><div class="rf-row">
+          ${F('MW','mw','ppg')}${F('Funnel','fv','s/qt')}${F('θ600','r600','')}${F('θ300','r300','')}${F('θ200','r200','')}${F('θ100','r100','')}${F('θ6','r6','')}${F('θ3','r3','')}
+          ${F('API FL','apifl','cc')}${F('HTHP FL','hthp','cc')}${F('Solids','solids','%')}${F('Oil','oil','%')}${F('Water','water','%')}${F('Chlorides','chl','mg/L')}${F('ES','es','V')}${F('Excess lime','lime','ppb')}${F('pH','ph','')}${F('MBT','mbt','ppb')}${F('Pₘ','pm','')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Geometry &amp; volumes  <span class="rf-note">single representative annulus — multi-section uses the Circulation &amp; Lag calc</span></div><div class="rf-row">
+          ${F('Pipe ID','idpipe','in')}${F('Pipe OD','odpipe','in')}${F('Hole/Csg ID','holed','in')}
+          ${F('Active pits','pitActive','bbl')}${F('Reserve','pitReserve','bbl')}${F('Loss shakers','lossShaker','bbl')}${F('Loss formation','lossForm','bbl')}${F('Loss other','lossOther','bbl')}
+        </div></div>
+        <div class="rf-sec"><div class="rf-h">Products used &amp; cost  <button class="addbtn" onclick="app.dmrAddProd()">+ add product</button></div>
+          <table class="rtbl"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th></th></tr></thead><tbody>${prodRows}</tbody></table>
+        </div>
+        ${verify?`<div class="rf-sec vsec"><div class="rf-h">Reported results (for verification)</div><div class="rf-row">
+          ${vfld('PV','vPV')}${vfld('YP','vYP')}${vfld('LSYP','vLSYP')}${vfld('OWR (oil)','vOWR')}${vfld('WPS ppm','vWPS')}${vfld('Ann. vel.','vAV')}${vfld('ECD','vECD')}${vfld('Bottoms-up min','vBU')}${vfld('Bit ΔP','vBitdp')}
+        </div></div>`:''}
+      </div>
+      <div id="dmrout"></div>
+    </div>`;
+    this.dmrCompute();
+  },
+  dmrCompute(){
+    const d=this.dmr, verify=this._dmrVerify;
+    const g=id=>{const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;};
+    // pull numeric inputs live
+    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','mw','fv','r600','r300','r200','r100','r6','r3','apifl','hthp','solids','oil','water','chl','es','lime','ph','mbt','pm','idpipe','odpipe','holed','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
+    d.noz=[0,1,2,3,4,5].map(i=>g('d_noz'+i));
+    if(verify)['vPV','vYP','vLSYP','vOWR','vWPS','vAV','vECD','vBU','vBitdp'].forEach(k=>{const el=document.getElementById('d_'+k); if(el)d[k]=el.value;});
+    localStorage.setItem('mep_dmr',JSON.stringify(d));
+    const R=(n,p=0)=>round(n,p);
+    // ---- rheology ----
+    const PV=d.r600-d.r300, YP=2*d.r300-d.r600, AVv=d.r600/2, LSYP=2*d.r3-d.r6;
+    // ---- OWR ----
+    const ow=d.oil+d.water; const owrO=ow>0?Math.round(100*d.oil/ow):0, owrW=100-owrO;
+    // ---- WPS (CaCl2) ----
+    const saltWM=d.chl*1.5643; const wps_wt=d.water>0?100*saltWM/(saltWM+d.water*1e4):0; const wps_ppm=wps_wt*1e4;
+    const brineSG=cacl2Interp(wps_wt).sg;
+    // ---- solids analysis (mass balance) ----
+    const rhoM=d.mw/8.345, fo=d.oil/100, fw=d.water/100, fs=d.solids/100;
+    const rhoOil=0.84, rhoBr=brineSG||1.0;
+    const avgSG = fs>0? (rhoM - fo*rhoOil - fw*rhoBr)/fs : 0;    // avg SG of solids
+    // split into LGS(2.6)/HGS(4.2)
+    let fLGS=0,fHGS=0; if(fs>0){ fHGS=fs*(avgSG-2.6)/(4.2-2.6); fHGS=Math.max(0,Math.min(fs,fHGS)); fLGS=fs-fHGS; }
+    const lgsPct=fLGS*100, hgsPct=fHGS*100, lgsLbBbl=fLGS*2.6*350, hgsLbBbl=fHGS*4.2*350;
+    // ---- geometry / volumes ----
+    const strCap=(d.idpipe*d.idpipe)/1029.4, annCap=(d.holed*d.holed-d.odpipe*d.odpipe)/1029.4;
+    const strVol=strCap*d.md, annVol=annCap*d.md, totVol=strVol+annVol+d.pitActive;
+    const bblStk=0.000243*d.liner*d.liner*d.stroke*(d.eff/100);
+    const buStk=bblStk>0?annVol/bblStk:0, buMin=d.spm>0?buStk/d.spm:0;
+    const AV=(d.holed*d.holed-d.odpipe*d.odpipe)>0?24.51*d.flow/(d.holed*d.holed-d.odpipe*d.odpipe):0;
+    // ---- annular ΔP (power-law, single section) → ECD ----
+    const na=d.r3>0?0.657*Math.log10((d.r100||1)/d.r3):0, Ka=5.11*d.r100/Math.pow(170.2,na||1);
+    const dgap=(d.holed-d.odpipe)||0.5, aArea=d.holed*d.holed-d.odpipe*d.odpipe;
+    const Va=aArea>0?24.48*d.flow/aArea:0;
+    const muea=100*Ka*Math.pow((2.4/dgap)*Va,na-1)*Math.pow((2*na+1)/(3*na||1),na);
+    const NRea=muea>0?15.467*Va*dgap*rhoM*8.345/muea:0;
+    const fa=NRea<=2100?(NRea>0?24/NRea:0):((Math.log10(na||0.5)+3.93)/50)/Math.pow(NRea,(1.75-Math.log10(na||0.5))/7);
+    const annDP=fa*Va*Va*(d.mw)/(92916*dgap)*d.md;
+    const ecd=d.tvd>0?d.mw+annDP/(0.052*d.tvd):d.mw;
+    // ---- bit hydraulics ----
+    const sumSq=d.noz.reduce((s,n)=>s+n*n,0); const tfa=Math.PI/4*d.noz.reduce((s,n)=>s+(n/32)*(n/32),0);
+    const pbit=sumSq>0?156*d.mw*d.flow*d.flow/(sumSq*sumSq):0; const vn=sumSq>0?417.2*d.flow/sumSq:0;
+    const hhpb=d.flow*pbit/1740, hsi=d.bit>0?1.27*hhpb/(d.bit*d.bit):0;
+    // ---- cost ----
+    const dailyCost=d.prods.reduce((s,p)=>s+(p.qty||0)*(p.price||0),0);
+    // ---- output ----
+    const co=this.dmrCos[d.company]||this.dmrCos.Generic;
+    const tile=(l,v,u,c)=>`<div class="rk"><div class="rk-l">${l}</div><div class="rk-v"${c?` style="color:${c}"`:''}>${v}<small>${u||''}</small></div></div>`;
+    const pr=(l,v)=>`<tr><td>${l}</td><td class="dv">${v}</td></tr>`;
+    let cmp='';
+    if(verify){
+      const chk=(lbl,rep,comp,tol,dec)=>{ const r=parseFloat(rep); if(rep===''||rep===undefined||isNaN(r)) return `<tr><td>${lbl}</td><td>—</td><td>${round(comp,dec)}</td><td class="vna">not entered</td></tr>`;
+        const diff=comp-r, ok=Math.abs(diff)<=Math.max(tol,Math.abs(comp)*0.02);
+        return `<tr><td>${lbl}</td><td>${round(r,dec)}</td><td>${round(comp,dec)}</td><td class="${ok?'vok':'vbad'}">${ok?'✔ match':'✗ off by '+round(diff,dec)}</td></tr>`; };
+      cmp=`<h4 class="rep-h">Calculation check</h4><div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Value</th><th>Reported</th><th>Recomputed</th><th>Result</th></tr></thead><tbody>
+        ${chk('PV (cP)',d.vPV,PV,1,0)}${chk('YP (lb/100ft²)',d.vYP,YP,1,0)}${chk('LSYP',d.vLSYP,LSYP,1,0)}
+        ${chk('OWR (oil part)',d.vOWR,owrO,1,0)}${chk('WPS (ppm)',d.vWPS,wps_ppm,3000,0)}
+        ${chk('Annular velocity (ft/min)',d.vAV,AV,5,0)}${chk('ECD (ppg)',d.vECD,ecd,0.1,2)}
+        ${chk('Bottoms-up (min)',d.vBU,buMin,2,1)}${chk('Bit ΔP (psi)',d.vBitdp,pbit,25,0)}
+      </tbody></table></div><p class="rep-sub">Match tolerance = greater of the fixed window shown or 2% of the recomputed value. “Off” means the report's printed figure disagrees with the physics from its own inputs — re-check the entry or the source calc.</p>`;
+    }
+    let html=`
+    <div class="dmr-band" style="border-color:${co.c}">
+      <div class="dmr-brand" style="color:${co.c}">${co.brand}</div>
+      <div class="dmr-title">${co.title}${co.sub?` <span>${co.sub}</span>`:''}</div>
+      <div class="dmr-meta"><b>${d.well||'Well ___'}</b> · Rig ${d.rig||'___'} · Report ${d.repno||'__'} · ${d.date||'____'} · ${d.operator||''}${d.contractor?' / '+d.contractor:''} · ${d.formation||''} · MD ${R(d.md)} ft / TVD ${R(d.tvd)} ft · ${d.activity||''}</div>
+    </div>
+    <div class="rgrid">
+      ${tile('PV / YP',R(PV)+' / '+R(YP),'cP · lb')}
+      ${tile('WPS',R(wps_ppm),'ppm',wps_ppm<200000||wps_ppm>240000?'var(--danger)':'var(--accent)')}
+      ${tile('OWR',owrO+'/'+owrW,'')}
+      ${tile('ECD',R(ecd,2),'ppg',ecd>d.mw+1.5?'var(--danger)':'var(--accent)')}
+      ${tile('Ann. velocity',R(AV),'ft/min',AV<120?'var(--warn)':'var(--accent)')}
+      ${tile('Bottoms-up',R(buMin,0),'min')}
+    </div>
+    <div class="dmr-cols">
+      <div><h4 class="rep-h">Mud properties</h4><table class="rtbl out sum"><tbody>
+        ${pr('Mud weight',R(d.mw,2)+' ppg  ('+R(d.mw/8.345,3)+' SG)')}
+        ${pr('Funnel / PV / YP',R(d.fv)+' s/qt · '+R(PV)+' cP · '+R(YP)+' lb/100ft²')}
+        ${pr('App. visc / LSYP',R(AVv)+' cP · '+R(LSYP)+' lb/100ft²')}
+        ${pr('Dial θ600/300/200/100/6/3',[d.r600,d.r300,d.r200,d.r100,d.r6,d.r3].map(x=>R(x)).join(' / '))}
+        ${pr('API / HTHP fluid loss',R(d.apifl,1)+' / '+R(d.hthp,1)+' cc')}
+        ${pr('Solids / Oil / Water',R(d.solids)+' / '+R(d.oil)+' / '+R(d.water)+' %')}
+        ${pr('Oil-water ratio',owrO+' / '+owrW)}
+        ${pr('Chlorides (whole mud)',R(d.chl)+' mg/L')}
+        ${pr('CaCl₂ / WPS',R(saltWM)+' mg/L · '+R(wps_wt,1)+' wt% · '+R(wps_ppm)+' ppm')}
+        ${pr('Brine SG',R(brineSG,3))}
+        ${pr('ES / Excess lime',R(d.es)+' V · '+R(d.lime,1)+' ppb')}
+        ${pr('pH / MBT / Pₘ',R(d.ph,1)+' · '+R(d.mbt,1)+' ppb · '+R(d.pm,1))}
+      </tbody></table></div>
+      <div><h4 class="rep-h">Solids · volumes · hydraulics</h4><table class="rtbl out sum"><tbody>
+        ${pr('Avg SG of solids',R(avgSG,2))}
+        ${pr('LGS',R(lgsPct,1)+' %  ·  '+R(lgsLbBbl,1)+' lb/bbl')}
+        ${pr('HGS (barite)',R(hgsPct,1)+' %  ·  '+R(hgsLbBbl,0)+' lb/bbl')}
+        ${pr('String / annulus vol',R(strVol,1)+' / '+R(annVol,1)+' bbl')}
+        ${pr('Active system volume',R(totVol,0)+' bbl')}
+        ${pr('Pump output',R(bblStk,4)+' bbl/stk')}
+        ${pr('Bottoms-up',R(buStk)+' stk · '+R(buMin,1)+' min')}
+        ${pr('Annular velocity',R(AV)+' ft/min')}
+        ${pr('ECD at TD',R(ecd,2)+' ppg  (ann ΔP '+R(annDP)+' psi)')}
+        ${pr('Bit ΔP / jet vel',R(pbit)+' psi · '+R(vn)+' ft/s')}
+        ${pr('TFA / HSI',R(tfa,3)+' in² · '+R(hsi,2)+' hp/in²')}
+        ${pr('Total daily losses',R(d.lossShaker+d.lossForm+d.lossOther)+' bbl')}
+      </tbody></table></div>
+    </div>
+    <h4 class="rep-h">Products used &amp; cost</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th>Cost</th></tr></thead><tbody>
+      ${d.prods.map(p=>`<tr><td>${p.name}</td><td>${p.unit}</td><td>${R(p.qty,1)}</td><td>${R(p.price,3)}</td><td>${R((p.qty||0)*(p.price||0),2)}</td></tr>`).join('')}
+      <tr class="rtot"><td colspan="4">Daily product cost</td><td>${R(dailyCost,2)}</td></tr>
+    </tbody></table></div>
+    ${cmp}
+    <p class="rep-sub">Generated by Mud Engineer Pro · derived values (PV, YP, OWR, WPS, solids split, AV, ECD, bottoms-up, bit hydraulics) are recomputed from your inputs. Company style = ${d.company}.</p>`;
+    const out=document.getElementById('dmrout'); if(out)out.innerHTML=html;
   },
   renderCalc(view,c){
     if(c.custom==='converter'){ this.pushRecent(c.id); this.renderConverter(view,c); document.getElementById('main').scrollTo(0,0); return; }
