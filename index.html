@@ -1679,7 +1679,7 @@ def('Brine',{
   id:'brine', name:'Brine Density (single salt)', icon:'🧂',
   desc:'Salt concentration, weighting and crystallization point to build a solids-free brine — with commercial-salt purity.',
   inputs:[
-    {k:'salt',label:'Salt',unit:'',def:'CACL2',opts:[['NACL','Sodium Chloride (NaCl) → 10.0 ppg'],['KCL','Potassium Chloride (KCl) → 9.7 ppg'],['CACL2','Calcium Chloride (CaCl₂) → 11.7 ppg']]},
+    {k:'salt',label:'Salt',unit:'',def:'CACL2',opts:[['NACL','Sodium Chloride (NaCl) → 10.0 ppg'],['KCL','Potassium Chloride (KCl) → 9.7 ppg'],['CACL2','Calcium Chloride (CaCl₂) → 11.6 ppg']]},
     {k:'ppgt',label:'Target Brine Weight',unit:'ppg',def:10},
     {k:'vol',label:'Brine Volume to build',unit:'bbl',def:100},
     {k:'purity',label:'Commercial salt purity',unit:'%',def:94}
@@ -1708,7 +1708,7 @@ def('Brine',{
       ],
       formula:'Interpolated from API brine tables (density ↔ % salt ↔ Cl⁻ ↔ TCT).\nCommercial salt = pure salt ÷ (purity ÷ 100)',
       steps:`${round(v.ppgt)} ppg ${v.salt} → <b>${round(pct,1)}% wt</b>, pure ${round(salt,1)} lb/bbl\nCommercial = ${round(salt,1)} ÷ ${round(pf,3)} = <b>${round(grossLbBbl,1)} lb/bbl</b>`,
-      note:(pure?'Commercial CaCl₂ is typically 94–97% and NaCl 98%; weigh out the GROSS (commercial) figure so the effective pure-salt concentration is met. ':'')+'TCT (True Crystallization Temperature) must stay below the lowest expected surface/seabed temperature. NaCl caps ~10.0 ppg, CaCl₂ ~11.7 ppg; heavier needs CaBr₂/formates.'};
+      note:(pure?'Commercial CaCl₂ is typically 94–97% (NaCl ~98%); weigh out the GROSS (commercial) figure so the effective pure-salt concentration is met — the lower the purity the more product you must add and the harder the top-end density is to reach. ':'')+'TCT (True Crystallization Temperature) must stay below the lowest expected surface/seabed temperature. Practical field maximums: NaCl ~10.0 ppg, CaCl₂ ~11.6 ppg (lab saturation ≈11.7 ppg at 40 wt%, rarely reached with commercial salt); above that use a CaCl₂/CaBr₂ blend, CaBr₂ or formates.'};
   }
 });
 def('Brine',{
