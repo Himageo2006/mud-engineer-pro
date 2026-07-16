@@ -422,7 +422,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <div>
         <h1>Mud Engineer <span>Pro</span></h1>
-        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)">v4.0</b></small>
+        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)">v4.1</b></small>
       </div>
     </div>
     <div class="search"><div class="sbox"><input id="search" placeholder="Search calculators, courses, manual…" autocomplete="off"/></div></div>
@@ -630,10 +630,10 @@ def('Density',{
   ],
   calc(v){
     const M = {
-      barite:{sg:K.BARITE_SG,name:'Barite',packs:[['Big bags (1500 lb)',1500,'bags'],['Sacks (100 lb)',100,'sacks']]},
-      hematite:{sg:K.HEMATITE_SG,name:'Hematite',packs:[['Big bags (1500 lb)',1500,'bags'],['Sacks (100 lb)',100,'sacks']]},
-      caco3:{sg:2.70,name:'CaCO₃',packs:[['Bags (1000 lb)',1000,'bags'],['Small sacks (55 lb)',55,'sacks']]}
-    }[v.mat] || {sg:K.BARITE_SG,name:'Barite',packs:[['Big bags (1500 lb)',1500,'bags']]};
+      barite:{sg:K.BARITE_SG,name:'Barite',packs:[['Big bags (3300 lb / 1.5 t)',3300,'bags'],['Sacks (100 lb)',100,'sacks']]},
+      hematite:{sg:K.HEMATITE_SG,name:'Hematite',packs:[['Big bags (3300 lb / 1.5 t)',3300,'bags'],['Sacks (100 lb)',100,'sacks']]},
+      caco3:{sg:2.70,name:'CaCO₃',packs:[['Bags (2200 lb / 1 t)',2200,'bags'],['Small sacks (55 lb)',55,'sacks']]}
+    }[v.mat] || {sg:K.BARITE_SG,name:'Barite',packs:[['Big bags (3300 lb / 1.5 t)',3300,'bags']]};
     const dm = ppg(M.sg); // ppg of material
     if(v.w2<=v.w1) return {main:{n:'—',v:'—',u:''},rows:[],formula:'',warn:'Desired weight must be greater than present weight.'};
     if(v.w2>=dm) return {main:{n:'—',v:'—',u:''},rows:[],formula:'',warn:'Desired weight exceeds '+M.name+' density ('+round(dm,1)+' ppg) — impossible with this material.'};
