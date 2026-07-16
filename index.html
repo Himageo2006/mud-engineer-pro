@@ -2496,8 +2496,14 @@ const app = {
     activity:'Drilling', mudtype:'OBM 70/30', md:10000, tvd:9500, inc:0, azi:0, bitdepth:10000,
     bit:8.5, noz:[12,12,12,0,0,0], flow:600, liner:6.5, stroke:12, eff:95, spm:60,
     mw:12.5, fv:60, r600:60, r300:40, r200:30, r100:18, r6:9, r3:6,
-    apifl:0, hthp:2.4, solids:20, oil:57, water:23, chl:39000, es:540, pf:0, mf:0, pm:3.7, ph:0, mbt:0, hard:0, lime:5, sysType:'OBM',
-    idpipe:4.276, odpipe:5, holed:8.5,
+    apifl:0, hthp:2.4, solids:20, oil:57, water:23, chl:39000, es:540, pf:0, mf:0.6, pm:3.7, ph:0, mbt:0, hard:0, sand:0.2, oilSG:0.84, sysType:'OBM',
+    surfCase:'3',
+    pipes:[ {label:'Drill Pipe 5"', od:5, id:4.276, len:9000},
+            {label:'HWDP 5"', od:5, id:3.0, len:500},
+            {label:'Drill Collars 6½"', od:6.5, id:2.8125, len:500} ],
+    anns:[ {label:'DP × Casing', hole:8.681, pipe:5, len:4000},
+           {label:'DP × Open Hole', hole:8.5, pipe:5, len:5000},
+           {label:'DC × Open Hole', hole:8.5, pipe:6.5, len:1000} ],
     pitActive:655, pitReserve:300, lossShaker:15, lossForm:78, lossOther:6, dailyProdCost:0,
     prods:[ {name:'BARITE 4.1 SG', unit:'mt', size:1500, qty:26, price:81.93},
             {name:'CaCO₃ (F&M)', unit:'sx', size:2200, qty:3, price:33.9},
@@ -2916,6 +2922,9 @@ const app = {
   dmrProdRow(i,f,v){ this.dmr.prods[i][f]=(f==='name'||f==='unit')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
   dmrAddProd(){ this.dmr.prods.push({name:'New product',unit:'sx',size:100,qty:0,price:0}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDelProd(i){ this.dmr.prods.splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrRow(kind,i,f,v){ this.dmr[kind][i][f]=(f==='label')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
+  dmrAdd(kind){ if(kind==='pipes') this.dmr.pipes.push({label:'New section',od:5,id:4.276,len:1000}); else this.dmr.anns.push({label:'New section',hole:8.5,pipe:5,len:1000}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrDel(kind,i){ this.dmr[kind].splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   renderDMR(view,verify){
     this._dmrVerify=verify; const d=this.dmr;
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
@@ -2947,14 +2956,31 @@ const app = {
           ${F('Bit size','bit','in')}${F('Flow rate','flow','gpm')}${F('Liner','liner','in')}${F('Stroke','stroke','in')}${F('Pump eff.','eff','%')}${F('SPM','spm','')}
           ${[0,1,2,3,4,5].map(i=>`<div class="rf"><label>Nozzle ${i+1}</label><div class="inp"><input id="d_noz${i}" value="${d.noz[i]}" oninput="app.dmrCompute()"/><span class="unit">32nd</span></div></div>`).join('')}
         </div></div>
-        <div class="rf-sec"><div class="rf-h">Mud properties</div><div class="rf-row">
+        <div class="rf-sec"><div class="rf-h">Mud properties  <span class="rf-note">measured / lab readings only — the app derives PV, YP, WPS, excess lime, solids &amp; hydraulics</span></div><div class="rf-row">
           ${F('MW','mw','ppg')}${F('Funnel','fv','s/qt')}${F('θ600','r600','')}${F('θ300','r300','')}${F('θ200','r200','')}${F('θ100','r100','')}${F('θ6','r6','')}${F('θ3','r3','')}
-          ${F('API FL','apifl','cc')}${F('HTHP FL','hthp','cc')}${F('Solids','solids','%')}${F('Oil','oil','%')}${F('Water','water','%')}${F('Chlorides','chl','mg/L')}${F('ES','es','V')}${F('Excess lime','lime','ppb')}${F('pH','ph','')}${F('MBT','mbt','ppb')}${F('Pₘ','pm','')}
+          ${F('API FL','apifl','cc')}${F('HTHP FL','hthp','cc')}${F('Solids (retort)','solids','%')}${F('Oil (retort)','oil','%')}${F('Water (retort)','water','%')}${F('Base-oil SG','oilSG','')}${F('Sand','sand','%')}
+          ${F('Chlorides','chl','mg/L')}${F('ES','es','V')}${F('Pₘ (mud alk.)','pm','cc')}${F('Pf','pf','cc')}${F('Mf','mf','cc')}${F('pH','ph','')}${F('MBT','mbt','ppb')}${F('Hardness Ca²⁺','hard','mg/L')}
         </div></div>
-        <div class="rf-sec"><div class="rf-h">Geometry &amp; volumes  <span class="rf-note">single representative annulus — multi-section uses the Circulation &amp; Lag calc</span></div><div class="rf-row">
-          ${F('Pipe ID','idpipe','in')}${F('Pipe OD','odpipe','in')}${F('Hole/Csg ID','holed','in')}
+        <div class="rf-sec"><div class="rf-h">Surface equipment, pits &amp; losses</div><div class="rf-row">
+          <div class="rf"><label>Surface equip.</label><div class="inp"><select id="d_surf" onchange="app.dmrSet('surfCase',this.value);app.dmrCompute()">${[['1','Case 1'],['2','Case 2'],['3','Case 3'],['4','Case 4']].map(o=>`<option value="${o[0]}" ${d.surfCase===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div></div>
           ${F('Active pits','pitActive','bbl')}${F('Reserve','pitReserve','bbl')}${F('Loss shakers','lossShaker','bbl')}${F('Loss formation','lossForm','bbl')}${F('Loss other','lossOther','bbl')}
         </div></div>
+        <div class="rf-sec"><div class="rf-h">Drill string  <button class="addbtn" onclick="app.dmrAdd('pipes')">+ add section</button></div>
+          <table class="rtbl"><thead><tr><th>Component</th><th>OD (in)</th><th>ID (in)</th><th>Length (ft)</th><th></th></tr></thead><tbody>${d.pipes.map((p,i)=>`<tr>
+            <td><input class="ri" value="${p.label}" oninput="app.dmrRow('pipes',${i},'label',this.value)"/></td>
+            <td><input class="ri n" value="${p.od}" oninput="app.dmrRow('pipes',${i},'od',this.value)"/></td>
+            <td><input class="ri n" value="${p.id}" oninput="app.dmrRow('pipes',${i},'id',this.value)"/></td>
+            <td><input class="ri n" value="${p.len}" oninput="app.dmrRow('pipes',${i},'len',this.value)"/></td>
+            <td class="rx"><button onclick="app.dmrDel('pipes',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table>
+        </div>
+        <div class="rf-sec"><div class="rf-h">Annulus  <button class="addbtn" onclick="app.dmrAdd('anns')">+ add section</button></div>
+          <table class="rtbl"><thead><tr><th>Section</th><th>Hole/Csg ID (in)</th><th>Pipe OD (in)</th><th>Length (ft)</th><th></th></tr></thead><tbody>${d.anns.map((a,i)=>`<tr>
+            <td><input class="ri" value="${a.label}" oninput="app.dmrRow('anns',${i},'label',this.value)"/></td>
+            <td><input class="ri n" value="${a.hole}" oninput="app.dmrRow('anns',${i},'hole',this.value)"/></td>
+            <td><input class="ri n" value="${a.pipe}" oninput="app.dmrRow('anns',${i},'pipe',this.value)"/></td>
+            <td><input class="ri n" value="${a.len}" oninput="app.dmrRow('anns',${i},'len',this.value)"/></td>
+            <td class="rx"><button onclick="app.dmrDel('anns',${i})" title="Remove">✕</button></td></tr>`).join('')}</tbody></table>
+        </div>
         <div class="rf-sec"><div class="rf-h">Products used &amp; cost  <button class="addbtn" onclick="app.dmrAddProd()">+ add product</button></div>
           <table class="rtbl"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th></th></tr></thead><tbody>${prodRows}</tbody></table>
         </div>
@@ -2969,51 +2995,74 @@ const app = {
   dmrCompute(){
     const d=this.dmr, verify=this._dmrVerify;
     const g=id=>{const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;};
-    // pull numeric inputs live
-    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','mw','fv','r600','r300','r200','r100','r6','r3','apifl','hthp','solids','oil','water','chl','es','lime','ph','mbt','pm','idpipe','odpipe','holed','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
+    // pull measured inputs live
+    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','mw','fv','r600','r300','r200','r100','r6','r3','apifl','hthp','solids','oil','water','oilSG','sand','chl','es','pm','pf','mf','ph','mbt','hard','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
     d.noz=[0,1,2,3,4,5].map(i=>g('d_noz'+i));
     if(verify)['vPV','vYP','vLSYP','vOWR','vWPS','vAV','vECD','vBU','vBitdp'].forEach(k=>{const el=document.getElementById('d_'+k); if(el)d[k]=el.value;});
     localStorage.setItem('mep_dmr',JSON.stringify(d));
     const R=(n,p=0)=>round(n,p);
-    // ---- rheology ----
+    const rho=d.mw, TVD=d.tvd||1, Q=d.flow;
+    // ---- rheology (Bingham + power-law) ----
     const PV=d.r600-d.r300, YP=2*d.r300-d.r600, AVv=d.r600/2, LSYP=2*d.r3-d.r6;
+    const np=d.r300>0?3.32*Math.log10(d.r600/d.r300):0, Kp=5.11*d.r600/Math.pow(1022,np||1);
+    const na=d.r3>0?0.657*Math.log10((d.r100||1)/d.r3):0, Ka=5.11*d.r100/Math.pow(170.2,na||1);
+    const fric=(NRe,n,lam)=> NRe<=2100? (NRe>0?lam/NRe:0) : ((Math.log10(n||0.5)+3.93)/50)/Math.pow(NRe,(1.75-Math.log10(n||0.5))/7);
     // ---- OWR ----
     const ow=d.oil+d.water; const owrO=ow>0?Math.round(100*d.oil/ow):0, owrW=100-owrO;
-    // ---- WPS (CaCl2) ----
+    // ---- WPS (CaCl₂) ----
     const saltWM=d.chl*1.565; const wps_wt=d.water>0?100*saltWM/(saltWM+d.water*1e4):0; const wps_ppm=wps_wt*1e4;
     const brineSG=cacl2Interp(wps_wt).sg;
-    // ---- solids analysis (mass balance) ----
-    const rhoM=d.mw/8.345, fo=d.oil/100, fw=d.water/100, fs=d.solids/100;
-    const rhoOil=0.84, rhoBr=brineSG||1.0;
-    const avgSG = fs>0? (rhoM - fo*rhoOil - fw*rhoBr)/fs : 0;    // avg SG of solids
-    // split into LGS(2.6)/HGS(4.2)
-    let fLGS=0,fHGS=0; if(fs>0){ fHGS=fs*(avgSG-2.6)/(4.2-2.6); fHGS=Math.max(0,Math.min(fs,fHGS)); fLGS=fs-fHGS; }
+    // ---- excess lime (calculated from Pₘ) ----
+    const excessLime=1.295*d.pm;
+    // ---- solids: brine content + salt-corrected solids + SG split ----
+    const rhoM=d.mw/8.345, S=wps_wt/100, fo=d.oil/100;
+    const brineContent = (1-S)>0 && brineSG>0 ? d.water/((1-S)*brineSG) : d.water;   // % by vol
+    const corrSolids = Math.max(0, 100 - d.oil - brineContent);
+    const fbrine=brineContent/100, fsC=corrSolids/100, rhoOil=d.oilSG||0.84;
+    const avgSG = fsC>0? (rhoM - fo*rhoOil - fbrine*brineSG)/fsC : 0;                 // avg SG of solids
+    let fHGS=0,fLGS=0; if(fsC>0){ fHGS=fsC*(avgSG-2.6)/(4.2-2.6); fHGS=Math.max(0,Math.min(fsC,fHGS)); fLGS=fsC-fHGS; }
     const lgsPct=fLGS*100, hgsPct=fHGS*100, lgsLbBbl=fLGS*2.6*350, hgsLbBbl=fHGS*4.2*350;
-    // ---- geometry / volumes ----
-    const strCap=(d.idpipe*d.idpipe)/1029.4, annCap=(d.holed*d.holed-d.odpipe*d.odpipe)/1029.4;
-    const strVol=strCap*d.md, annVol=annCap*d.md, totVol=strVol+annVol+d.pitActive;
+    // ---- pump ----
     const bblStk=0.000243*d.liner*d.liner*d.stroke*(d.eff/100);
+    // ---- pipe pressure losses ----
+    let pTot=0, strVol=0, pipeCalc=d.pipes.map(p=>{ const id=p.id||1; const V=24.48*Q/(id*id);
+      const mue=100*Kp*Math.pow((1.6/id)*V,np-1)*Math.pow((3*np+1)/(4*np||1),np);
+      const NRe=mue>0?15.467*V*id*rho/mue:0; const f=fric(NRe,np,16); const dp=f*V*V*rho/(92916*id)*p.len;
+      pTot+=dp; strVol+=(id*id)/1029.4*p.len; return {label:p.label,id,len:p.len,V,NRe,turb:NRe>2100,dp}; });
+    // surface equipment as equivalent length of 3.826" pipe
+    const caseLen={'1':2600,'2':946,'3':610,'4':424}[d.surfCase]||610, sid=3.826;
+    const sV=24.48*Q/(sid*sid), smue=100*Kp*Math.pow((1.6/sid)*sV,np-1)*Math.pow((3*np+1)/(4*np||1),np);
+    const sNRe=smue>0?15.467*sV*sid*rho/smue:0, sf=fric(sNRe,np,16), pSurf=sf*sV*sV*rho/(92916*sid)*caseLen;
+    // ---- annulus: losses, velocities, volume ----
+    let aTot=0, annVol=0, annVmax=0, annVmin=1e9, annCalc=d.anns.map(a=>{ const dgap=(a.hole-a.pipe)||0.5; const area=a.hole*a.hole-a.pipe*a.pipe; const V=area>0?24.48*Q/area:0;
+      const Vmin=area>0?24.51*Q/area:0; // ft/min (transport)
+      const mue=100*Ka*Math.pow((2.4/dgap)*V,na-1)*Math.pow((2*na+1)/(3*na||1),na);
+      const NRe=mue>0?15.467*V*dgap*rho/mue:0; const f=fric(NRe,na,24); const dp=f*V*V*rho/(92916*dgap)*a.len;
+      aTot+=dp; annVol+=area/1029.4*a.len; if(Vmin>annVmax)annVmax=Vmin; if(Vmin<annVmin)annVmin=Vmin;
+      return {label:a.label,hole:a.hole,pipe:a.pipe,len:a.len,V:Vmin,NRe,turb:NRe>2100,dp}; });
+    if(annVmin===1e9)annVmin=0;
+    // ---- circulation / bottoms-up ----
     const buStk=bblStk>0?annVol/bblStk:0, buMin=d.spm>0?buStk/d.spm:0;
-    const AV=(d.holed*d.holed-d.odpipe*d.odpipe)>0?24.51*d.flow/(d.holed*d.holed-d.odpipe*d.odpipe):0;
-    // ---- annular ΔP (power-law, single section) → ECD ----
-    const na=d.r3>0?0.657*Math.log10((d.r100||1)/d.r3):0, Ka=5.11*d.r100/Math.pow(170.2,na||1);
-    const dgap=(d.holed-d.odpipe)||0.5, aArea=d.holed*d.holed-d.odpipe*d.odpipe;
-    const Va=aArea>0?24.48*d.flow/aArea:0;
-    const muea=100*Ka*Math.pow((2.4/dgap)*Va,na-1)*Math.pow((2*na+1)/(3*na||1),na);
-    const NRea=muea>0?15.467*Va*dgap*rhoM*8.345/muea:0;
-    const fa=NRea<=2100?(NRea>0?24/NRea:0):((Math.log10(na||0.5)+3.93)/50)/Math.pow(NRea,(1.75-Math.log10(na||0.5))/7);
-    const annDP=fa*Va*Va*(d.mw)/(92916*dgap)*d.md;
-    const ecd=d.tvd>0?d.mw+annDP/(0.052*d.tvd):d.mw;
+    const downStk=bblStk>0?strVol/bblStk:0, downMin=d.spm>0?downStk/d.spm:0;
+    const fullStk=bblStk>0?(strVol+annVol)/bblStk:0, fullMin=d.spm>0?fullStk/d.spm:0;
+    const totVol=strVol+annVol+d.pitActive;
     // ---- bit hydraulics ----
-    const sumSq=d.noz.reduce((s,n)=>s+n*n,0); const tfa=Math.PI/4*d.noz.reduce((s,n)=>s+(n/32)*(n/32),0);
-    const pbit=sumSq>0?156*d.mw*d.flow*d.flow/(sumSq*sumSq):0; const vn=sumSq>0?417.2*d.flow/sumSq:0;
-    const hhpb=d.flow*pbit/1740, hsi=d.bit>0?1.27*hhpb/(d.bit*d.bit):0;
+    const sumSq=d.noz.reduce((s,n)=>s+n*n,0), tfa=Math.PI/4*d.noz.reduce((s,n)=>s+(n/32)*(n/32),0);
+    const pbit=sumSq>0?156*rho*Q*Q/(sumSq*sumSq):0, vn=sumSq>0?417.2*Q/sumSq:0;
+    const spp=pSurf+pTot+pbit+aTot;
+    const hhpSys=spp*Q/1714, hhpb=Q*pbit/1740, hsi=d.bit>0?1.27*hhpb/(d.bit*d.bit):0, impact=vn*Q*rho/1930;
+    const pctBit=spp>0?pbit/spp*100:0, pctSurf=spp>0?pSurf/spp*100:0, pctStr=spp>0?pTot/spp*100:0, pctAnn=spp>0?aTot/spp*100:0;
+    const ecd=rho+aTot/(0.052*TVD);
+    // cuttings-loaded ECD (approx: adds cuttings as extra annular density from ROP if entered — omitted, static)
+    const esd=rho;
     // ---- cost ----
     const dailyCost=d.prods.reduce((s,p)=>s+(p.qty||0)*(p.price||0),0);
     // ---- output ----
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
     const tile=(l,v,u,c)=>`<div class="rk"><div class="rk-l">${l}</div><div class="rk-v"${c?` style="color:${c}"`:''}>${v}<small>${u||''}</small></div></div>`;
     const pr=(l,v)=>`<tr><td>${l}</td><td class="dv">${v}</td></tr>`;
+    const regime=t=>t?'<span class="turb">Turb.</span>':'<span class="lam">Lam.</span>';
+    const bar=(v,c)=>`<div class="pbar"><div style="width:${Math.max(1,Math.min(100,v))}%;background:${c}"></div></div>`;
     let cmp='';
     if(verify){
       const chk=(lbl,rep,comp,tol,dec)=>{ const r=parseFloat(rep); if(rep===''||rep===undefined||isNaN(r)) return `<tr><td>${lbl}</td><td>—</td><td>${round(comp,dec)}</td><td class="vna">not entered</td></tr>`;
@@ -3022,9 +3071,9 @@ const app = {
       cmp=`<h4 class="rep-h">Calculation check</h4><div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Value</th><th>Reported</th><th>Recomputed</th><th>Result</th></tr></thead><tbody>
         ${chk('PV (cP)',d.vPV,PV,1,0)}${chk('YP (lb/100ft²)',d.vYP,YP,1,0)}${chk('LSYP',d.vLSYP,LSYP,1,0)}
         ${chk('OWR (oil part)',d.vOWR,owrO,1,0)}${chk('WPS (ppm)',d.vWPS,wps_ppm,3000,0)}
-        ${chk('Annular velocity (ft/min)',d.vAV,AV,5,0)}${chk('ECD (ppg)',d.vECD,ecd,0.1,2)}
+        ${chk('Peak annular velocity (ft/min)',d.vAV,annVmax,8,0)}${chk('ECD (ppg)',d.vECD,ecd,0.1,2)}
         ${chk('Bottoms-up (min)',d.vBU,buMin,2,1)}${chk('Bit ΔP (psi)',d.vBitdp,pbit,25,0)}
-      </tbody></table></div><p class="rep-sub">Match tolerance = greater of the fixed window shown or 2% of the recomputed value. “Off” means the report's printed figure disagrees with the physics from its own inputs — re-check the entry or the source calc.</p>`;
+      </tbody></table></div><p class="rep-sub">Match tolerance = greater of the fixed window shown or 2% of the recomputed value. “Off” means the report's printed figure disagrees with the physics from its own inputs.</p>`;
     }
     let html=`
     <div class="dmr-band" style="border-color:${co.c}">
@@ -3037,7 +3086,7 @@ const app = {
       ${tile('WPS',R(wps_ppm),'ppm',wps_ppm<200000||wps_ppm>240000?'var(--danger)':'var(--accent)')}
       ${tile('OWR',owrO+'/'+owrW,'')}
       ${tile('ECD',R(ecd,2),'ppg',ecd>d.mw+1.5?'var(--danger)':'var(--accent)')}
-      ${tile('Ann. velocity',R(AV),'ft/min',AV<120?'var(--warn)':'var(--accent)')}
+      ${tile('Standpipe P',R(spp),'psi')}
       ${tile('Bottoms-up',R(buMin,0),'min')}
     </div>
     <div class="dmr-cols">
@@ -3046,37 +3095,58 @@ const app = {
         ${pr('Funnel / PV / YP',R(d.fv)+' s/qt · '+R(PV)+' cP · '+R(YP)+' lb/100ft²')}
         ${pr('App. visc / LSYP',R(AVv)+' cP · '+R(LSYP)+' lb/100ft²')}
         ${pr('Dial θ600/300/200/100/6/3',[d.r600,d.r300,d.r200,d.r100,d.r6,d.r3].map(x=>R(x)).join(' / '))}
+        ${pr('n / K (pipe · annulus)',R(np,3)+' / '+R(Kp,2)+'  ·  '+R(na,3)+' / '+R(Ka,2))}
         ${pr('API / HTHP fluid loss',R(d.apifl,1)+' / '+R(d.hthp,1)+' cc')}
-        ${pr('Solids / Oil / Water',R(d.solids)+' / '+R(d.oil)+' / '+R(d.water)+' %')}
+        ${pr('Solids / Oil / Water (retort)',R(d.solids)+' / '+R(d.oil)+' / '+R(d.water)+' %')}
         ${pr('Oil-water ratio',owrO+' / '+owrW)}
         ${pr('Chlorides (whole mud)',R(d.chl)+' mg/L')}
         ${pr('CaCl₂ / WPS',R(saltWM)+' mg/L · '+R(wps_wt,1)+' wt% · '+R(wps_ppm)+' ppm')}
-        ${pr('Brine SG',R(brineSG,3))}
-        ${pr('ES / Excess lime',R(d.es)+' V · '+R(d.lime,1)+' ppb')}
-        ${pr('pH / MBT / Pₘ',R(d.ph,1)+' · '+R(d.mbt,1)+' ppb · '+R(d.pm,1))}
+        ${pr('Brine SG / content',R(brineSG,3)+' · '+R(brineContent,1)+' %')}
+        ${pr('<b>Excess lime</b> (1.295×Pₘ)','<b>'+R(excessLime,2)+' lb/bbl</b>  (Pₘ '+R(d.pm,1)+')')}
+        ${pr('ES / Sand',R(d.es)+' V · '+R(d.sand,1)+' %')}
+        ${pr('pH / MBT / Hardness',R(d.ph,1)+' · '+R(d.mbt,1)+' ppb · '+R(d.hard)+' mg/L')}
       </tbody></table></div>
-      <div><h4 class="rep-h">Solids · volumes · hydraulics</h4><table class="rtbl out sum"><tbody>
+      <div><h4 class="rep-h">Solids · volumes · circulation</h4><table class="rtbl out sum"><tbody>
+        ${pr('Salt-corrected solids',R(corrSolids,1)+' %')}
         ${pr('Avg SG of solids',R(avgSG,2))}
         ${pr('LGS',R(lgsPct,1)+' %  ·  '+R(lgsLbBbl,1)+' lb/bbl')}
         ${pr('HGS (barite)',R(hgsPct,1)+' %  ·  '+R(hgsLbBbl,0)+' lb/bbl')}
         ${pr('String / annulus vol',R(strVol,1)+' / '+R(annVol,1)+' bbl')}
         ${pr('Active system volume',R(totVol,0)+' bbl')}
         ${pr('Pump output',R(bblStk,4)+' bbl/stk')}
+        ${pr('Surface → bit',R(downStk)+' stk · '+R(downMin,1)+' min')}
         ${pr('Bottoms-up',R(buStk)+' stk · '+R(buMin,1)+' min')}
-        ${pr('Annular velocity',R(AV)+' ft/min')}
-        ${pr('ECD at TD',R(ecd,2)+' ppg  (ann ΔP '+R(annDP)+' psi)')}
-        ${pr('Bit ΔP / jet vel',R(pbit)+' psi · '+R(vn)+' ft/s')}
-        ${pr('TFA / HSI',R(tfa,3)+' in² · '+R(hsi,2)+' hp/in²')}
+        ${pr('Full circulation',R(fullStk)+' stk · '+R(fullMin,1)+' min')}
+        ${pr('Annular velocity (min–max)',R(annVmin)+' – '+R(annVmax)+' ft/min')}
         ${pr('Total daily losses',R(d.lossShaker+d.lossForm+d.lossOther)+' bbl')}
       </tbody></table></div>
     </div>
+    <h4 class="rep-h">Hydraulics — standpipe ${R(spp)} psi · ECD ${R(ecd,2)} ppg · ESD ${R(esd,2)} ppg</h4>
+    <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Drill-string component</th><th>ID</th><th>Len</th><th>Vel ft/min</th><th>NRe</th><th>Regime</th><th>ΔP psi</th></tr></thead><tbody>
+      ${pipeCalc.map(p=>`<tr><td>${p.label}</td><td>${R(p.id,3)}</td><td>${R(p.len)}</td><td>${R(p.V)}</td><td>${R(p.NRe)}</td><td>${regime(p.turb)}</td><td>${R(p.dp)}</td></tr>`).join('')}
+      <tr class="rtot"><td colspan="6">Drill-string total</td><td>${R(pTot)}</td></tr></tbody></table></div>
+    <div class="rtbl-wrap" style="margin-top:10px"><table class="rtbl out"><thead><tr><th>Annulus section</th><th>Hole</th><th>Pipe</th><th>Len</th><th>AV ft/min</th><th>NRe</th><th>Regime</th><th>ΔP psi</th></tr></thead><tbody>
+      ${annCalc.map(a=>`<tr><td>${a.label}</td><td>${R(a.hole,3)}</td><td>${R(a.pipe,3)}</td><td>${R(a.len)}</td><td>${R(a.V)}</td><td>${R(a.NRe)}</td><td>${regime(a.turb)}</td><td>${R(a.dp)}</td></tr>`).join('')}
+      <tr class="rtot"><td colspan="7">Annular total</td><td>${R(aTot)}</td></tr></tbody></table></div>
+    <div class="pdist" style="margin-top:12px">
+      <div class="pd-row"><span>Surface equip (Case ${d.surfCase})</span>${bar(pctSurf,'#5aa9f0')}<b>${R(pSurf)} psi (${R(pctSurf)}%)</b></div>
+      <div class="pd-row"><span>Drill string</span>${bar(pctStr,'#9a86f0')}<b>${R(pTot)} psi (${R(pctStr)}%)</b></div>
+      <div class="pd-row"><span>Bit</span>${bar(pctBit,'#ff9d2e')}<b>${R(pbit)} psi (${R(pctBit)}%)</b></div>
+      <div class="pd-row"><span>Annulus</span>${bar(pctAnn,'#2dd4bf')}<b>${R(aTot)} psi (${R(pctAnn)}%)</b></div>
+    </div>
+    <div class="rtbl-wrap" style="margin-top:12px"><table class="rtbl out sum"><tbody>
+      <tr><td>Standpipe pressure</td><td>${R(spp)} psi</td><td>System HHP</td><td>${R(hhpSys)} hp</td></tr>
+      <tr><td>Bit ΔP (% of SPP)</td><td>${R(pbit)} psi (${R(pctBit)}%)</td><td>Bit HHP</td><td>${R(hhpb)} hp</td></tr>
+      <tr><td>Jet velocity</td><td>${R(vn)} ft/s</td><td>HSI</td><td>${R(hsi,2)} hp/in²</td></tr>
+      <tr><td>TFA</td><td>${R(tfa,3)} in²</td><td>Jet impact force</td><td>${R(impact)} lbf</td></tr>
+    </tbody></table></div>
     <h4 class="rep-h">Products used &amp; cost</h4>
     <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Product</th><th>Unit</th><th>Qty</th><th>Unit price</th><th>Cost</th></tr></thead><tbody>
       ${d.prods.map(p=>`<tr><td>${p.name}</td><td>${p.unit}</td><td>${R(p.qty,1)}</td><td>${R(p.price,3)}</td><td>${R((p.qty||0)*(p.price||0),2)}</td></tr>`).join('')}
       <tr class="rtot"><td colspan="4">Daily product cost</td><td>${R(dailyCost,2)}</td></tr>
     </tbody></table></div>
     ${cmp}
-    <p class="rep-sub">Generated by Mud Engineer Pro · derived values (PV, YP, OWR, WPS, solids split, AV, ECD, bottoms-up, bit hydraulics) are recomputed from your inputs. Company style = ${d.company}.</p>`;
+    <p class="rep-sub">All bold/derived values are computed by the app from the measured inputs: PV/YP/LSYP, n/K, OWR, WPS (CaCl₂), <b>excess lime = 1.295×Pₘ</b>, brine content &amp; salt-corrected solids, LGS/HGS split, full multi-section pressure losses, standpipe pressure, ECD, bottoms-up &amp; bit hydraulics. Company style = ${d.company}.</p>`;
     const out=document.getElementById('dmrout'); if(out)out.innerHTML=html;
   },
   /* ===== MUD PROPOSAL generator ===== */
