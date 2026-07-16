@@ -362,6 +362,18 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .dmr-ops b{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--brand2)}
 .dmr-ops p{margin:5px 0 0;font-size:12.5px;line-height:1.55;color:var(--text);white-space:normal}
 .dmr-ops:first-child:last-child{grid-column:1/-1}
+.segtoggle{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden;background:var(--bg-2)}
+.segtoggle button{border:0;background:transparent;color:var(--muted);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.segtoggle button.on{background:var(--accent);color:#001}
+.rtbl.dmrchk td,.rtbl.dmrmud td{padding:3px 6px}
+.rtbl.dmrchk .pl,.rtbl.dmrmud .pl{text-align:left;font-weight:600;color:var(--text);white-space:nowrap}
+.pu{color:var(--faint);font-weight:500;font-size:10.5px}
+.rtbl.dmrchk th,.rtbl.dmrmud th{background:var(--panel3);white-space:nowrap}
+.rtbl.dmrchk .ri{min-width:74px}
+.rtbl.out.dmrmud td{border-top:1px solid var(--line);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rtbl.out.dmrmud td.pl{text-align:left}
+.rtbl.out.dmrmud tr.calcrow td{background:color-mix(in srgb,var(--accent) 9%,transparent);font-weight:650}
+.rtbl.out.dmrmud tr.calcrow td.pl{color:var(--brand2)}
 /* Mud proposal */
 #propout{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
 .psec{border:1px solid var(--line2);border-radius:11px;padding:12px 14px;margin-bottom:11px;background:var(--bg-2)}
@@ -1977,6 +1989,53 @@ const MUDSYS={
 };
 const HOLECLEAN={'22':{q:'—',rpm:'—',av:'—'},'16':{q:'1100 – 1300 gpm',rpm:'150',av:'> 110 ft/min'},'12.25':{q:'800 – 1100 gpm',rpm:'120 – 150',av:'> 150 ft/min'},'8.5':{q:'600 – 700 gpm',rpm:'100 – 120',av:'> 180 ft/min'},'6.125':{q:'300 – 400 gpm',rpm:'70 – 80',av:'> 200 ft/min'}};
 
+/* ---- DMR mud-check row schemas (SCOMI order); [key,label,unit,calcKey] — calcKey='' means measured/entered ---- */
+const DMR_TEXT_KEYS=['mudType','time','cake','sampleSource'];
+const DMR_ROWS={
+  OBM:[
+    ['mudType','Mud Type','',''],['time','Time','',''],['flt','Flow Line Temp','°F',''],['depth','Depth','ft',''],
+    ['mw','Mud Weight','lb/gal',''],['grad','Mud Gradient','psi/ft','grad'],['fv','Funnel Viscosity','sec',''],
+    ['r600','R600','',''],['r300','R300','',''],['r200','R200','',''],['r100','R100','',''],['r6','R6','',''],['r3','R3','',''],
+    ['pv','PV','cP','pv'],['yp','YP','lb/100ft²','yp'],['lsyp','LSYP','lb/100ft²','lsyp'],
+    ['g10s','10 sec Gel','lb/100ft²',''],['g10m','10 min Gel','lb/100ft²',''],['g30m','30 min Gel','lb/100ft²',''],
+    ['apifl','API Fluid Loss','cc',''],['hthp','HTHP','cc',''],['cake','Cake API/HTHP','',''],
+    ['sand','Sand Content','%vol',''],['oil','Oil','%vol',''],['water','Water','%vol',''],['solids','Solid','%vol',''],
+    ['owr','OWR','','owr'],['pm','POM','ml',''],['lime','Excess Lime','lb/bbl','lime'],['es','Electrical Stability','Volt',''],
+    ['clwp','Cl⁻ Water Phase','mg/l','clwp'],['chl','Cl⁻ Whole Mud','mg/l',''],
+    ['cacl2','CaCl₂ / WPS','% wt','cacl2'],['wps','WPS','ppm','wps'],['corrSol','Corrected Solids','%vol','corrSol']
+  ],
+  WBM:[
+    ['sampleSource','Sample Source','',''],['mudType','Mud Type','',''],['time','Time','',''],['flt','Flow Line Temp','°F',''],
+    ['depth','Depth','ft',''],['mw','Mud Weight','lb/gal',''],['grad','Mud Gradient','psi/ft','grad'],
+    ['fv','Funnel Viscosity','sec',''],['rheoT','Rheology Temp','°F',''],
+    ['r600','R600','',''],['r300','R300','',''],['r200','R200','',''],['r100','R100','',''],['r6','R6','',''],['r3','R3','',''],
+    ['pv','PV','cP','pv'],['yp','YP','lb/100ft²','yp'],['lsyp','LSYP','lb/100ft²','lsyp'],
+    ['g10s','10 sec Gel','lb/100ft²',''],['g10m','10 min Gel','lb/100ft²',''],['g30m','30 min Gel','lb/100ft²',''],
+    ['apifl','API Fluid Loss','cc',''],['cake','Cake API/HTHP','',''],
+    ['sand','Sand Content','%vol',''],['oil','Oil','%vol',''],['water','Water','%vol',''],['solids','Solid','%vol',''],
+    ['lime','Excess Lime','lb/bbl',''],['ph','pH','',''],['phT','pH Temp','°F',''],['mbt','MBT','ppb',''],
+    ['pm','Alkalinity Mud (Pm)','ml',''],['pf','Pf','ml',''],['mf','Mf','ml',''],
+    ['chl','Chlorides','mg/l',''],['hard','Total Hardness','mg/l','']
+  ]
+};
+/* derived values for one mud check */
+function dmrDeriv(ck){ ck=ck||{};
+  const mw=+ck.mw||0, r600=+ck.r600||0, r300=+ck.r300||0, r6=+ck.r6||0, r3=+ck.r3||0, oil=+ck.oil||0, water=+ck.water||0, chl=+ck.chl||0, pm=+ck.pm||0;
+  const pv=r600-r300, yp=2*r300-r600, lsyp=2*r3-r6, grad=0.052*mw;
+  const ow=oil+water, owrO=ow>0?Math.round(100*oil/ow):0, owr=owrO+'/'+(100-owrO);
+  const saltWM=chl*1.565, cacl2wt=water>0?100*saltWM/(saltWM+water*1e4):0, wps=cacl2wt*1e4;
+  const brineSG=cacl2Interp(cacl2wt).sg, S=cacl2wt/100;
+  const brineContent=(1-S)>0&&brineSG>0?water/((1-S)*brineSG):water;
+  const clwp=brineContent>0?chl/(brineContent/100):0;
+  const corrSol=Math.max(0,100-oil-brineContent);
+  const lime=1.295*pm;
+  return {pv,yp,lsyp,grad,owr,owrO,saltWM,cacl2wt,wps,brineSG,brineContent,clwp,corrSol,lime};
+}
+/* one mud-check cell value (output table) */
+function dmrCell(row,ck,dv){ const k=row[0],c=row[3];
+  if(c){ if(c==='owr') return dv.owr; const m={grad:dv.grad,pv:dv.pv,yp:dv.yp,lsyp:dv.lsyp,lime:dv.lime,clwp:dv.clwp,cacl2:dv.cacl2wt,wps:dv.wps,corrSol:dv.corrSol}; const dec={grad:3,pv:0,yp:0,lsyp:0,lime:2,clwp:0,cacl2:1,wps:0,corrSol:1}[c]; return round(m[c],dec); }
+  if(DMR_TEXT_KEYS.includes(k)) return ck[k]||''; return (ck[k]!==undefined&&ck[k]!=='')?round(+ck[k]||0,2):''; }
+
 def('Chemistry',{
   id:'wps', name:'Water Phase Salinity (WPS)', icon:'🧂',
   desc:'Water-phase salinity of an oil-based mud from whole-mud chloride + retort — as CaCl₂ wt%, ppm and mg/L, with brine SG & water activity.',
@@ -2504,9 +2563,11 @@ const app = {
     activity:'Drilling', mudtype:'OBM 70/30', md:10000, tvd:9500, inc:0, azi:0, bitdepth:10000,
     remarks:'', treatments:'', forecast:'',
     bit:8.5, noz:[12,12,12,0,0,0], flow:600, liner:6.5, stroke:12, eff:95, spm:60,
-    mw:12.5, fv:60, r600:60, r300:40, r200:30, r100:18, r6:9, r3:6,
-    apifl:0, hthp:2.4, solids:20, oil:57, water:23, chl:39000, es:540, pf:0, mf:0.6, pm:3.7, ph:0, mbt:0, hard:0, sand:0.2, oilSG:0.84, sysType:'OBM',
-    surfCase:'3',
+    sysType:'OBM', oilSG:0.84, surfCase:'3',
+    checks:[
+      {sampleSource:'Active', mudType:'OBM 70/30', time:'08:00', flt:140, depth:8550, mw:12.5, fv:85, rheoT:120, r600:60, r300:40, r200:30, r100:18, r6:9, r3:6, g10s:11, g10m:13, g30m:17, apifl:0, hthp:2.2, cake:'1', sand:0.2, oil:57, water:23, solids:20, pm:3.7, es:535, chl:39000, ph:0, phT:80, mbt:0, pf:0, mf:0.6, hard:0},
+      {sampleSource:'Active', mudType:'OBM 70/30', time:'16:00', flt:143, depth:8723, mw:12.5, fv:88, rheoT:120, r600:61, r300:41, r200:30, r100:18, r6:9, r3:6, g10s:12, g10m:15, g30m:19, apifl:0, hthp:2.0, cake:'1', sand:0.2, oil:57, water:23, solids:20, pm:3.7, es:547, chl:39000, ph:0, phT:80, mbt:0, pf:0, mf:0.6, hard:0}
+    ],
     pipes:[ {label:'Drill Pipe 5"', od:5, id:4.276, len:9000},
             {label:'HWDP 5"', od:5, id:3.0, len:500},
             {label:'Drill Collars 6½"', od:6.5, id:2.8125, len:500} ],
@@ -2934,6 +2995,10 @@ const app = {
   dmrRow(kind,i,f,v){ this.dmr[kind][i][f]=(f==='label')?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
   dmrAdd(kind){ if(kind==='pipes') this.dmr.pipes.push({label:'New section',od:5,id:4.276,len:1000}); else this.dmr.anns.push({label:'New section',hole:8.5,pipe:5,len:1000}); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   dmrDel(kind,i){ this.dmr[kind].splice(i,1); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrCheckSet(i,k,v){ if(!this.dmr.checks[i])return; this.dmr.checks[i][k]=DMR_TEXT_KEYS.includes(k)?v:(parseFloat(v)||0); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.dmrCompute(); },
+  dmrAddCheck(){ if(this.dmr.checks.length>=6)return; const last=this.dmr.checks[this.dmr.checks.length-1]||{}; this.dmr.checks.push(Object.assign({},last)); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrDelCheck(i){ if(this.dmr.checks.length<=1)return; this.dmr.checks.splice(i,1); localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
+  dmrSysToggle(s){ this.dmr.sysType=s; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); this.renderDMR(document.getElementById('view'),this._dmrVerify); },
   renderDMR(view,verify){
     this._dmrVerify=verify; const d=this.dmr;
     const co=this.dmrCos[d.company]||this.dmrCos.Generic;
@@ -2965,11 +3030,16 @@ const app = {
           ${F('Bit size','bit','in')}${F('Flow rate','flow','gpm')}${F('Liner','liner','in')}${F('Stroke','stroke','in')}${F('Pump eff.','eff','%')}${F('SPM','spm','')}
           ${[0,1,2,3,4,5].map(i=>`<div class="rf"><label>Nozzle ${i+1}</label><div class="inp"><input id="d_noz${i}" value="${d.noz[i]}" oninput="app.dmrCompute()"/><span class="unit">32nd</span></div></div>`).join('')}
         </div></div>
-        <div class="rf-sec"><div class="rf-h">Mud properties  <span class="rf-note">measured / lab readings only — the app derives PV, YP, WPS, excess lime, solids &amp; hydraulics</span></div><div class="rf-row">
-          ${F('MW','mw','ppg')}${F('Funnel','fv','s/qt')}${F('θ600','r600','')}${F('θ300','r300','')}${F('θ200','r200','')}${F('θ100','r100','')}${F('θ6','r6','')}${F('θ3','r3','')}
-          ${F('API FL','apifl','cc')}${F('HTHP FL','hthp','cc')}${F('Solids (retort)','solids','%')}${F('Oil (retort)','oil','%')}${F('Water (retort)','water','%')}${F('Base-oil SG','oilSG','')}${F('Sand','sand','%')}
-          ${F('Chlorides','chl','mg/L')}${F('ES','es','V')}${F('Pₘ (mud alk.)','pm','cc')}${F('Pf','pf','cc')}${F('Mf','mf','cc')}${F('pH','ph','')}${F('MBT','mbt','ppb')}${F('Hardness Ca²⁺','hard','mg/L')}
-        </div></div>
+        <div class="rf-sec"><div class="rf-h">Mud system &amp; checks  <span class="rf-note">choose WBM or OBM — the property list &amp; the report switch to match. Enter measured readings only; up to 6 checks.</span></div>
+          <div class="segtoggle">
+            <button class="${d.sysType==='WBM'?'on':''}" onclick="app.dmrSysToggle('WBM')">WBM — Water-based</button>
+            <button class="${d.sysType!=='WBM'?'on':''}" onclick="app.dmrSysToggle('OBM')">OBM / NAF — Oil-based</button>
+          </div>
+          <div class="rf-row" style="margin-top:10px">${F('Base-oil SG','oilSG','')}<div class="rf" style="flex:2;display:flex;align-items:flex-end">${d.checks.length<6?`<button class="addbtn" style="margin:0" onclick="app.dmrAddCheck()">+ add mud check (${d.checks.length}/6)</button>`:`<span class="rf-note" style="align-self:flex-end">6 checks max</span>`}</div></div>
+          <div class="rtbl-wrap" style="margin-top:10px"><table class="rtbl dmrchk"><thead><tr><th>Property (measured)</th>${d.checks.map((c,i)=>`<th>Check ${i+1} ${d.checks.length>1?`<button class="rx-in" onclick="app.dmrDelCheck(${i})" title="Remove check">✕</button>`:''}</th>`).join('')}</tr></thead><tbody>
+            ${DMR_ROWS[d.sysType==='WBM'?'WBM':'OBM'].filter(r=>!r[3]).map(r=>`<tr><td class="pl">${r[1]}${r[2]?` <span class="pu">${r[2]}</span>`:''}</td>${d.checks.map((c,i)=>`<td><input class="ri ${DMR_TEXT_KEYS.includes(r[0])?'':'n'}" value="${c[r[0]]!==undefined?c[r[0]]:''}" oninput="app.dmrCheckSet(${i},'${r[0]}',this.value)"/></td>`).join('')}</tr>`).join('')}
+          </tbody></table></div>
+        </div>
         <div class="rf-sec"><div class="rf-h">Surface equipment, pits &amp; losses</div><div class="rf-row">
           <div class="rf"><label>Surface equip.</label><div class="inp"><select id="d_surf" onchange="app.dmrSet('surfCase',this.value);app.dmrCompute()">${[['1','Case 1'],['2','Case 2'],['3','Case 3'],['4','Case 4']].map(o=>`<option value="${o[0]}" ${d.surfCase===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div></div>
           ${F('Active pits','pitActive','bbl')}${F('Reserve','pitReserve','bbl')}${F('Loss shakers','lossShaker','bbl')}${F('Loss formation','lossForm','bbl')}${F('Loss other','lossOther','bbl')}
@@ -3008,32 +3078,31 @@ const app = {
   },
   dmrCompute(){
     const d=this.dmr, verify=this._dmrVerify;
+    if(!Array.isArray(d.checks)||!d.checks.length) d.checks=[{}];
+    if(!Array.isArray(d.pipes)) d.pipes=[]; if(!Array.isArray(d.anns)) d.anns=[];
     const g=id=>{const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;};
-    // pull measured inputs live
-    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','mw','fv','r600','r300','r200','r100','r6','r3','apifl','hthp','solids','oil','water','oilSG','sand','chl','es','pm','pf','mf','ph','mbt','hard','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
+    // pull measured (non mud-check) inputs live
+    ['md','tvd','bitdepth','inc','azi','bit','flow','liner','stroke','eff','spm','oilSG','pitActive','pitReserve','lossShaker','lossForm','lossOther'].forEach(k=>{ if(document.getElementById('d_'+k)) d[k]=g('d_'+k); });
     d.noz=[0,1,2,3,4,5].map(i=>g('d_noz'+i));
     if(verify)['vPV','vYP','vLSYP','vOWR','vWPS','vAV','vECD','vBU','vBitdp'].forEach(k=>{const el=document.getElementById('d_'+k); if(el)d[k]=el.value;});
     localStorage.setItem('mep_dmr',JSON.stringify(d));
     const R=(n,p=0)=>round(n,p);
-    const rho=d.mw, TVD=d.tvd||1, Q=d.flow;
-    // ---- rheology (Bingham + power-law) ----
-    const PV=d.r600-d.r300, YP=2*d.r300-d.r600, AVv=d.r600/2, LSYP=2*d.r3-d.r6;
-    const np=d.r300>0?3.32*Math.log10(d.r600/d.r300):0, Kp=5.11*d.r600/Math.pow(1022,np||1);
-    const na=d.r3>0?0.657*Math.log10((d.r100||1)/d.r3):0, Ka=5.11*d.r100/Math.pow(170.2,na||1);
+    const sys=d.sysType==='WBM'?'WBM':'OBM';
+    const derivs=d.checks.map(dmrDeriv);
+    const hi=d.checks.length-1, hck=d.checks[hi]||{}, hd=derivs[hi];   // hydraulics driven by the latest check
+    const rho=+hck.mw||0, TVD=d.tvd||1, Q=d.flow;
+    const r600=+hck.r600||0, r300=+hck.r300||0, r100=+hck.r100||0, r3=+hck.r3||0;
+    // ---- rheology (from latest check) ----
+    const PV=hd.pv, YP=hd.yp, LSYP=hd.lsyp, AVv=r600/2;
+    const np=r300>0?3.32*Math.log10(r600/r300):0, Kp=5.11*r600/Math.pow(1022,np||1);
+    const na=r3>0?0.657*Math.log10((r100||1)/r3):0, Ka=5.11*r100/Math.pow(170.2,na||1);
     const fric=(NRe,n,lam)=> NRe<=2100? (NRe>0?lam/NRe:0) : ((Math.log10(n||0.5)+3.93)/50)/Math.pow(NRe,(1.75-Math.log10(n||0.5))/7);
-    // ---- OWR ----
-    const ow=d.oil+d.water; const owrO=ow>0?Math.round(100*d.oil/ow):0, owrW=100-owrO;
-    // ---- WPS (CaCl₂) ----
-    const saltWM=d.chl*1.565; const wps_wt=d.water>0?100*saltWM/(saltWM+d.water*1e4):0; const wps_ppm=wps_wt*1e4;
-    const brineSG=cacl2Interp(wps_wt).sg;
-    // ---- excess lime (calculated from Pₘ) ----
-    const excessLime=1.295*d.pm;
-    // ---- solids: brine content + salt-corrected solids + SG split ----
-    const rhoM=d.mw/8.345, S=wps_wt/100, fo=d.oil/100;
-    const brineContent = (1-S)>0 && brineSG>0 ? d.water/((1-S)*brineSG) : d.water;   // % by vol
-    const corrSolids = Math.max(0, 100 - d.oil - brineContent);
-    const fbrine=brineContent/100, fsC=corrSolids/100, rhoOil=d.oilSG||0.84;
-    const avgSG = fsC>0? (rhoM - fo*rhoOil - fbrine*brineSG)/fsC : 0;                 // avg SG of solids
+    // ---- chem / WPS / solids (from latest check) ----
+    const owrO=hd.owrO, owrW=100-owrO;
+    const saltWM=hd.saltWM, wps_wt=hd.cacl2wt, wps_ppm=hd.wps, brineSG=hd.brineSG, excessLime=hd.lime;
+    const rhoM=rho/8.345, brineContent=hd.brineContent, corrSolids=hd.corrSol;
+    const fo=(+hck.oil||0)/100, fbrine=brineContent/100, fsC=corrSolids/100, rhoOil=d.oilSG||0.84;
+    const avgSG = fsC>0? (rhoM - fo*rhoOil - fbrine*brineSG)/fsC : 0;
     let fHGS=0,fLGS=0; if(fsC>0){ fHGS=fsC*(avgSG-2.6)/(4.2-2.6); fHGS=Math.max(0,Math.min(fsC,fHGS)); fLGS=fsC-fHGS; }
     const lgsPct=fLGS*100, hgsPct=fHGS*100, lgsLbBbl=fLGS*2.6*350, hgsLbBbl=fHGS*4.2*350;
     // ---- pump ----
@@ -3077,6 +3146,10 @@ const app = {
     const pr=(l,v)=>`<tr><td>${l}</td><td class="dv">${v}</td></tr>`;
     const regime=t=>t?'<span class="turb">Turb.</span>':'<span class="lam">Lam.</span>';
     const bar=(v,c)=>`<div class="pbar"><div style="width:${Math.max(1,Math.min(100,v))}%;background:${c}"></div></div>`;
+    const mudTbl=`<h4 class="rep-h">Mud properties — ${sys==='WBM'?'Water-based (WBM)':'Oil-based (OBM / NAF)'} · ${d.checks.length} mud check${d.checks.length>1?'s':''}</h4>
+    <div class="rtbl-wrap"><table class="rtbl out dmrmud"><thead><tr><th>Mud property</th>${d.checks.map((c,i)=>`<th>Check ${i+1}</th>`).join('')}</tr></thead><tbody>
+      ${DMR_ROWS[sys].map(r=>`<tr class="${r[3]?'calcrow':''}"><td class="pl">${r[1]}${r[2]?` <span class="pu">${r[2]}</span>`:''}</td>${d.checks.map((c,i)=>`<td>${dmrCell(r,c,derivs[i])}</td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>`;
     let cmp='';
     if(verify){
       const chk=(lbl,rep,comp,tol,dec)=>{ const r=parseFloat(rep); if(rep===''||rep===undefined||isNaN(r)) return `<tr><td>${lbl}</td><td>—</td><td>${round(comp,dec)}</td><td class="vna">not entered</td></tr>`;
@@ -3092,14 +3165,14 @@ const app = {
     let html=`
     <div class="dmr-band" style="border-color:${co.c}">
       <div class="dmr-brand" style="color:${co.c}">${co.brand}</div>
-      <div class="dmr-title">${co.title}${co.sub?` <span>${co.sub}</span>`:''}</div>
-      <div class="dmr-meta"><b>${d.well||'Well ___'}</b> · Rig ${d.rig||'___'} · Report ${d.repno||'__'} · ${d.date||'____'} · ${d.operator||''}${d.contractor?' / '+d.contractor:''} · ${d.formation||''} · MD ${R(d.md)} ft / TVD ${R(d.tvd)} ft · ${d.activity||''}</div>
+      <div class="dmr-title">${co.title} <span>${sys==='WBM'?'Water-based (WBM)':'Oil-based (OBM / NAF)'}</span></div>
+      <div class="dmr-meta"><b>${d.well||'Well ___'}</b> · Rig ${d.rig||'___'} · Report ${d.repno||'__'} · ${d.date||'____'} · ${d.operator||''}${d.contractor?' / '+d.contractor:''} · ${d.formation||''} · MD ${R(d.md)} ft / TVD ${R(d.tvd)} ft · ${d.activity||''}${hck.mudType?' · '+hck.mudType:''}</div>
     </div>
     <div class="rgrid">
       ${tile('PV / YP',R(PV)+' / '+R(YP),'cP · lb')}
-      ${tile('WPS',R(wps_ppm),'ppm',wps_ppm<200000||wps_ppm>240000?'var(--danger)':'var(--accent)')}
-      ${tile('OWR',owrO+'/'+owrW,'')}
-      ${tile('ECD',R(ecd,2),'ppg',ecd>d.mw+1.5?'var(--danger)':'var(--accent)')}
+      ${sys==='OBM'?tile('WPS',R(wps_ppm),'ppm',wps_ppm<200000||wps_ppm>240000?'var(--danger)':'var(--accent)'):tile('Chlorides',R(+hck.chl||0),'mg/L')}
+      ${sys==='OBM'?tile('OWR',owrO+'/'+owrW,''):tile('MBT',R(+hck.mbt||0),'ppb')}
+      ${tile('ECD',R(ecd,2),'ppg',ecd>rho+1.5?'var(--danger)':'var(--accent)')}
       ${tile('Standpipe P',R(spp),'psi')}
       ${tile('Bottoms-up',R(buMin,0),'min')}
     </div>
@@ -3107,28 +3180,20 @@ const app = {
       const blk=(t,x)=> x&&x.trim()? `<div class="dmr-ops"><b>${t}</b><p>${esc(x)}</p></div>`:'';
       const inner=blk('Rig operations (last 24 hr)',d.remarks)+blk('Fluid treatments',d.treatments)+blk('Forecast / next operation',d.forecast);
       return inner? `<div class="dmr-opswrap">${inner}</div>`:''; })()}
+    ${mudTbl}
     <div class="dmr-cols">
-      <div><h4 class="rep-h">Mud properties</h4><table class="rtbl out sum"><tbody>
-        ${pr('Mud weight',R(d.mw,2)+' ppg  ('+R(d.mw/8.345,3)+' SG)')}
-        ${pr('Funnel / PV / YP',R(d.fv)+' s/qt · '+R(PV)+' cP · '+R(YP)+' lb/100ft²')}
-        ${pr('App. visc / LSYP',R(AVv)+' cP · '+R(LSYP)+' lb/100ft²')}
-        ${pr('Dial θ600/300/200/100/6/3',[d.r600,d.r300,d.r200,d.r100,d.r6,d.r3].map(x=>R(x)).join(' / '))}
-        ${pr('n / K (pipe · annulus)',R(np,3)+' / '+R(Kp,2)+'  ·  '+R(na,3)+' / '+R(Ka,2))}
-        ${pr('API / HTHP fluid loss',R(d.apifl,1)+' / '+R(d.hthp,1)+' cc')}
-        ${pr('Solids / Oil / Water (retort)',R(d.solids)+' / '+R(d.oil)+' / '+R(d.water)+' %')}
-        ${pr('Oil-water ratio',owrO+' / '+owrW)}
-        ${pr('Chlorides (whole mud)',R(d.chl)+' mg/L')}
-        ${pr('CaCl₂ / WPS',R(saltWM)+' mg/L · '+R(wps_wt,1)+' wt% · '+R(wps_ppm)+' ppm')}
-        ${pr('Brine SG / content',R(brineSG,3)+' · '+R(brineContent,1)+' %')}
-        ${pr('<b>Excess lime</b> (1.295×Pₘ)','<b>'+R(excessLime,2)+' lb/bbl</b>  (Pₘ '+R(d.pm,1)+')')}
-        ${pr('ES / Sand',R(d.es)+' V · '+R(d.sand,1)+' %')}
-        ${pr('pH / MBT / Hardness',R(d.ph,1)+' · '+R(d.mbt,1)+' ppb · '+R(d.hard)+' mg/L')}
-      </tbody></table></div>
-      <div><h4 class="rep-h">Solids · volumes · circulation</h4><table class="rtbl out sum"><tbody>
-        ${pr('Salt-corrected solids',R(corrSolids,1)+' %')}
+      <div><h4 class="rep-h">Derived — latest check</h4><table class="rtbl out sum"><tbody>
+        ${pr('n / K (pipe)',R(np,3)+' / '+R(Kp,2))}
+        ${pr('n / K (annulus)',R(na,3)+' / '+R(Ka,2))}
+        ${sys==='OBM'?pr('CaCl₂ / WPS',R(saltWM)+' mg/L · '+R(wps_wt,1)+' wt% · '+R(wps_ppm)+' ppm'):pr('Chlorides',R(+hck.chl||0)+' mg/L')}
+        ${sys==='OBM'?pr('Brine SG / content',R(brineSG,3)+' · '+R(brineContent,1)+' %'):''}
+        ${sys==='OBM'?pr('<b>Excess lime</b> (1.295×Pₘ)','<b>'+R(excessLime,2)+' lb/bbl</b>'):''}
+        ${pr(sys==='OBM'?'Salt-corrected solids':'Solids (retort)',R(sys==='OBM'?corrSolids:(+hck.solids||0),1)+' %')}
         ${pr('Avg SG of solids',R(avgSG,2))}
         ${pr('LGS',R(lgsPct,1)+' %  ·  '+R(lgsLbBbl,1)+' lb/bbl')}
         ${pr('HGS (barite)',R(hgsPct,1)+' %  ·  '+R(hgsLbBbl,0)+' lb/bbl')}
+      </tbody></table></div>
+      <div><h4 class="rep-h">Volumes &amp; circulation</h4><table class="rtbl out sum"><tbody>
         ${pr('String / annulus vol',R(strVol,1)+' / '+R(annVol,1)+' bbl')}
         ${pr('Active system volume',R(totVol,0)+' bbl')}
         ${pr('Pump output',R(bblStk,4)+' bbl/stk')}
