@@ -9,8 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Mud Engineer Pro"/>
 <link rel="manifest" href="manifest.webmanifest"/>
-<link rel="apple-touch-icon" href="icon.svg"/>
-<link rel="icon" href="icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192"/>
+<link rel="icon" href="icon-512.png" type="image/png" sizes="512x512"/>
 <style>
 :root{
   /* DARK (default) — rich navy base so colors pop, clearly elevated surfaces */
@@ -101,7 +102,7 @@ strong,b{font-weight:700}
 .side{background:linear-gradient(180deg,var(--panel),var(--bg-2));border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 .brand{display:flex;align-items:center;gap:12px;padding:18px 18px 16px;border-bottom:1px solid var(--line)}
 .logo{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;box-shadow:var(--shadow);overflow:hidden;flex:none;background:linear-gradient(150deg,#182130,#0d131c);border:1px solid var(--line2)}
-.logo svg{width:44px;height:44px;display:block}
+.logo svg,.logo img{width:44px;height:44px;display:block;object-fit:cover}
 .brand h1{font-size:16.5px;margin:0;font-weight:750;letter-spacing:.2px}
 .brand h1 span{background:linear-gradient(90deg,var(--brand2),var(--brand));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .brand small{color:var(--faint);font-size:11px;font-weight:500;letter-spacing:.2px}
@@ -530,18 +531,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   <aside class="side" id="side">
     <div class="brand">
       <div class="logo">
-        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="lg-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c063"/><stop offset="1" stop-color="#e9a83f"/></linearGradient>
-            <linearGradient id="lg-o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2fd0a0"/><stop offset="1" stop-color="#1c8f6c"/></linearGradient>
-          </defs>
-          <g stroke="#3a4a5e" stroke-width="12" fill="none" opacity="0.5">
-            <path d="M176 372 L232 150 L280 150 L336 372"/><path d="M204 292 L308 292 M216 244 L296 244"/><path d="M204 292 L296 244 M308 292 L216 244"/>
-          </g>
-          <path d="M256 150 C300 236 340 280 340 330 a84 84 0 1 1 -168 0 C172 280 212 236 256 150 Z" fill="url(#lg-d)"/>
-          <path d="M180 330 a76 76 0 0 0 152 0 C332 356 300 372 256 372 C212 372 180 356 180 330 Z" fill="url(#lg-o)"/>
-          <circle cx="230" cy="300" r="9" fill="#fff" opacity="0.55"/>
-        </svg>
+        <img src="icon-192.png" alt="Mud Engineer Pro" width="44" height="44" decoding="async">
       </div>
       <div>
         <h1>Mud Engineer <span>Pro</span></h1>
