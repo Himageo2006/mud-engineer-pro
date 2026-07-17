@@ -51,6 +51,31 @@
 select{color-scheme:inherit}
 select option,select optgroup{background:var(--panel);color:var(--text)}
 [data-theme="light"] select option{background:#fff;color:var(--text)}
+/* Android WebView draws <select> as an OS dialog that ignores all CSS above, so every
+   select is wrapped and a themed sheet (.sheet-ov) is shown instead. See enhanceSelects(). */
+.selwrap{position:relative;display:flex;flex:1;min-width:0}
+.selwrap>select{flex:1;width:100%;pointer-events:none}
+.selwrap-u{flex:none}
+.selhit{position:absolute;inset:0;border:0;padding:0;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sheet-ov{position:fixed;inset:0;z-index:60;background:rgba(3,7,12,.6);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity .18s}
+.sheet-ov.in{opacity:1}
+.sheet{width:100%;max-width:540px;background:var(--panel);border:1px solid var(--line2);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;max-height:78vh;transform:translateY(16px);transition:transform .2s cubic-bezier(.2,.9,.3,1);padding-bottom:env(safe-area-inset-bottom)}
+.sheet-ov.in .sheet{transform:none}
+.sheet-grab{width:38px;height:4px;border-radius:3px;background:var(--line2);margin:9px auto 3px;flex:none}
+.sheet-h{padding:7px 18px 11px;font-size:11px;font-weight:750;text-transform:uppercase;letter-spacing:.8px;color:var(--faint);border-bottom:1px solid var(--line);flex:none}
+.sheet-sr{flex:none;margin:10px 12px 2px;display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--bg-2);border-radius:10px;padding:0 10px}
+.sheet-sr .sc{flex:none;width:15px;height:15px;color:var(--faint)}
+.sheet-sr input{flex:1;border:0;background:transparent;color:var(--text);font-family:var(--font);font-size:14px;padding:10px 0;outline:none;min-width:0}
+.sheet-l{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:7px 8px 12px;overscroll-behavior:contain}
+.sheet-o{display:flex;align-items:center;gap:11px;width:100%;min-height:50px;text-align:left;border:0;background:transparent;color:var(--text);font-family:var(--font);font-size:15px;padding:12px;border-radius:11px;cursor:pointer;transition:background .12s}
+.sheet-o:hover{background:var(--panel3)}
+.sheet-o:active{background:var(--card-hover)}
+.sheet-o.on{background:color-mix(in srgb,var(--accent) 13%,transparent);font-weight:650}
+.sheet-o .ck{flex:none;width:17px;height:17px;color:var(--accent);opacity:0}
+.sheet-o.on .ck{opacity:1}
+.sheet-o .og{font-size:11px;color:var(--faint);margin-left:auto;font-weight:600}
+.sheet-none{padding:22px 12px;text-align:center;color:var(--faint);font-size:13px}
+@media(min-width:640px){.sheet-ov{align-items:center;padding:20px}.sheet{border-radius:16px;border-bottom:1px solid var(--line2);max-height:70vh}}
 html,body{margin:0;height:100%}
 body{
   background:
@@ -3735,6 +3760,109 @@ const app = {
   }
 };
 app.init();
+
+/* ---- Themed dropdown sheet ----------------------------------------------------
+   Android WebView renders <select> as a native OS dialog: white, unthemed, tiny rows,
+   and immune to CSS. Every <select> is therefore made pointer-events:none, covered by
+   a .selhit button, and its options are shown in an in-app sheet. The real <select>
+   stays in the DOM and still receives .value + a bubbling 'change' event, so every
+   existing inline onchange handler and getElementById(...).value read keeps working. */
+(function(){
+  const CK='<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+  const SEARCH='<svg class="sc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>';
+  let open=null;
+
+  function titleFor(sel){
+    const box=sel.closest('.field,.rf');
+    const lab=box&&box.querySelector('label');
+    if(lab&&lab.textContent.trim()) return lab.textContent.trim();
+    const td=sel.closest('td');
+    if(td&&td.parentElement){
+      const i=[...td.parentElement.children].indexOf(td);
+      const hr=(td.closest('table')||{}).querySelector&&td.closest('table').querySelector('thead tr');
+      if(hr&&hr.children[i]&&hr.children[i].textContent.trim()) return hr.children[i].textContent.trim();
+    }
+    return sel.getAttribute('aria-label')||'Select an option';
+  }
+
+  function close(){
+    if(!open) return;
+    const {ov,onKey}=open; open=null;
+    document.removeEventListener('keydown',onKey);
+    ov.classList.remove('in');
+    document.body.style.overflow='';
+    setTimeout(()=>ov.remove(),190);
+  }
+
+  function show(sel){
+    if(open||sel.disabled) return;
+    const opts=[...sel.options].filter(o=>!o.disabled);
+    if(!opts.length) return;
+
+    const ov=document.createElement('div'); ov.className='sheet-ov';
+    const searchable=opts.length>8;
+    ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">
+      <div class="sheet-grab"></div>
+      <div class="sheet-h">${titleFor(sel).replace(/</g,'&lt;')}</div>
+      ${searchable?`<div class="sheet-sr">${SEARCH}<input type="text" placeholder="Search…" autocomplete="off"></div>`:''}
+      <div class="sheet-l"></div></div>`;
+
+    const list=ov.querySelector('.sheet-l');
+    const paint=q=>{
+      const f=opts.filter(o=>!q||o.textContent.toLowerCase().includes(q.toLowerCase()));
+      if(!f.length){ list.innerHTML='<div class="sheet-none">No matches</div>'; return; }
+      list.innerHTML=f.map(o=>{
+        const g=o.parentElement&&o.parentElement.tagName==='OPTGROUP'?o.parentElement.label:'';
+        return `<button type="button" class="sheet-o${o.selected?' on':''}" data-i="${opts.indexOf(o)}">${CK}
+          <span>${o.textContent.replace(/</g,'&lt;')}</span>${g?`<span class="og">${g.replace(/</g,'&lt;')}</span>`:''}</button>`;
+      }).join('');
+    };
+    paint('');
+
+    list.addEventListener('click',e=>{
+      const b=e.target.closest('.sheet-o'); if(!b) return;
+      const o=opts[+b.dataset.i];
+      close();
+      if(sel.value!==o.value){                       // close first: handlers may re-render this select away
+        sel.value=o.value;
+        sel.dispatchEvent(new Event('input',{bubbles:true}));
+        sel.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    });
+    ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+
+    const onKey=e=>{ if(e.key==='Escape'){ e.preventDefault(); close(); } };
+    document.addEventListener('keydown',onKey);
+
+    document.body.appendChild(ov); document.body.style.overflow='hidden';
+    open={ov,onKey};
+    requestAnimationFrame(()=>{
+      ov.classList.add('in');
+      const on=list.querySelector('.sheet-o.on'); if(on) on.scrollIntoView({block:'center'});
+    });
+    const sr=ov.querySelector('.sheet-sr input');
+    if(sr) sr.addEventListener('input',()=>paint(sr.value));
+  }
+
+  function enhance(sel){
+    if(sel.dataset.sheet) return;
+    sel.dataset.sheet='1';
+    const w=document.createElement('span');
+    w.className='selwrap'+(sel.classList.contains('unitsel')?' selwrap-u':'');
+    sel.parentNode.insertBefore(w,sel); w.appendChild(sel);
+    const hit=document.createElement('button');
+    hit.type='button'; hit.className='selhit';
+    hit.setAttribute('aria-haspopup','listbox');
+    hit.setAttribute('aria-label',titleFor(sel));
+    hit.addEventListener('click',()=>show(sel));
+    w.appendChild(hit);
+  }
+  const scan=r=>{ if(r.nodeType!==1) return; if(r.tagName==='SELECT') enhance(r); r.querySelectorAll&&r.querySelectorAll('select').forEach(enhance); };
+
+  scan(document.body);
+  new MutationObserver(ms=>{ for(const m of ms) m.addedNodes.forEach(scan); })
+    .observe(document.body,{childList:true,subtree:true});
+})();
 
 /* PWA offline service worker (ignored when wrapped natively by Capacitor/Electron) */
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
