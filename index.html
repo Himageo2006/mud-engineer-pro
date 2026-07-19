@@ -2766,12 +2766,6 @@ const app = {
         <div class="stat"><b>${nQuiz}</b><span>Quiz Q's</span></div>
         <div class="stat"><b>${MANUAL.length}</b><span>Manual Ch.</span></div>
       </div></div>`;
-    // Big feature cards — document generators
-    const bigcard=(col,icon,title,desc,route)=>`<div class="bigcard" style="--c:${col}" onclick="app.go('${route}')"><div class="bc-ic">${icon}</div><div class="bc-b"><h4>${title}</h4><p>${desc}</p></div><span class="bc-go">Open ${svgi('arrow')}</span></div>`;
-    h+=`<div class="sectlabel"><span class="si" style="--c:#ff9d2e">${svgi('report')}</span>Generate a document</div><div class="biggrid">`;
-    h+=bigcard('#ff9d2e', svgi('report'), 'DMR Generator', "Build a full Daily Mud Report — enter the day's data and it auto-computes PV/YP, WPS, OWR, solids, ECD, bottoms-up, bit hydraulics &amp; cost. Company-styled &amp; printable (with a built-in calculation verifier).", 'report:dmr');
-    h+=bigcard('#00b34d', svgi('layers'), 'Mud Proposal', 'Generate a sectioned drilling-fluids program — add a section per hole size for property specs, additives, volumes &amp; cost, plus hole-cleaning, bridging, LCM &amp; stuck-pipe appendices.', 'report:proposal');
-    h+=`</div>`;
     // Quick access: favorites + recent (calculators only)
     const quick=[...this.fav, ...this.recent.filter(id=>!this.fav.includes(id))].map(id=>this.findCalc(id)?id:null).filter(Boolean).slice(0,4);
     if(quick.length){
@@ -2786,6 +2780,8 @@ const app = {
     h+=hub('#6d5cff', svgi('cap'), 'Mud School', 'Learn the whole M-I manual, chapter by chapter, in simple language with quizzes.', TRAINING.length+' courses', 'hub:train');
     h+=hub('#ff9d2e', svgi('report'), 'Reports', 'Hydraulics report, Daily Mud Report generator, DMR verifier &amp; a mud-proposal generator.', '4 reports', 'report:dmr');
     h+=hub('#7d93ff', svgi('book'), 'Reference Manual', 'Quick-reference chapters on every drilling-fluids topic and the formula sheet.', MANUAL.length+' chapters', 'hub:manual');
+    h+=hub('#ff9d2e', svgi('report'), 'DMR Generator', "Build a full Daily Mud Report — enter the day's data, it computes PV/YP, WPS, solids, ECD &amp; cost.", 'PDF', 'report:dmr');
+    h+=hub('#00b34d', svgi('layers'), 'Mud Proposal', 'A sectioned drilling-fluids program — property specs, additives, volumes &amp; cost per hole size.', 'PDF', 'report:proposal');
     h+=`</div>`;
     view.innerHTML=h;
     document.getElementById('main').scrollTo(0,0);
