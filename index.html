@@ -136,6 +136,41 @@ strong,b{font-weight:700}
 .btn.btn-primary{background:var(--accent);border-color:var(--accent);color:#001;font-weight:750;padding:9px 16px;font-size:13px}
 .btn.btn-primary:hover{background:color-mix(in srgb,var(--accent) 85%,#fff);color:#001;box-shadow:0 6px 16px -6px var(--accent)}
 @media print{.btn.btn-primary{display:none!important}}
+/* ---------- Pro / Unlock screen ---------- */
+.pro-cta{display:flex;align-items:center;gap:8px;margin:0 10px 10px;padding:10px 12px;border-radius:11px;font-weight:750;font-size:13px;cursor:pointer;color:#2a1c00;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 6px 16px -8px var(--brand)}
+.pro-cta:hover{filter:brightness(1.05)}
+.pro-cta .st{width:16px;height:16px;flex:none}
+.pro-nav-on{display:flex;align-items:center;gap:7px;margin:0 10px 10px;padding:9px 12px;border-radius:11px;font-weight:700;font-size:12.5px;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+.pro-page{max-width:760px}
+.pro-hero{text-align:center;padding:14px 0 6px}
+.pro-crown{width:58px;height:58px;margin:0 auto 10px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 12px 30px -10px var(--brand)}
+.pro-crown svg{width:32px;height:32px;color:#2a1c00}
+.pro-hero h3{font-size:26px;margin:0 0 6px}
+.pro-tag{font-size:12px;font-weight:800;letter-spacing:1px;color:#2a1c00;background:linear-gradient(135deg,var(--brand),var(--brand2));padding:2px 8px;border-radius:6px;vertical-align:middle;margin-left:6px}
+.pro-hero p{color:var(--muted);font-size:14px;max-width:520px;margin:0 auto;line-height:1.6}
+.pro-grid{display:grid;gap:10px;margin:20px 0}
+.pro-feat{display:flex;align-items:center;gap:13px;padding:13px 15px;background:var(--panel);border:1px solid var(--line);border-radius:13px}
+.pf-ic{width:38px;height:38px;flex:none;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
+.pf-ic svg{width:20px;height:20px}
+.pro-feat h4{margin:0 0 2px;font-size:14.5px}
+.pro-feat p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5}
+.pf-ck{margin-left:auto;flex:none;color:var(--accent)}
+.pf-ck svg{width:20px;height:20px}
+.pro-cta-box{text-align:center;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-top:6px}
+.pro-price{font-size:15px;font-weight:750;margin-bottom:14px}
+.pro-price span{color:var(--faint);font-weight:500;font-size:12.5px}
+.pro-buy{font-size:15px!important;padding:12px 30px!important;background:linear-gradient(135deg,var(--brand),var(--brand2))!important;border:0!important;color:#2a1c00!important}
+.pro-restore{margin-left:10px}
+.pro-fine{color:var(--faint);font-size:11.5px;margin:14px auto 0;max-width:430px;line-height:1.5}
+.navitem.locked{color:var(--faint)}
+.navitem .lk{display:inline-block;width:11px;height:11px;margin-left:5px;opacity:.55;vertical-align:-1px}
+.minipro{font-size:8.5px;font-weight:800;letter-spacing:.5px;color:#2a1c00;background:linear-gradient(135deg,var(--brand),var(--brand2));padding:1px 5px;border-radius:5px;vertical-align:middle;margin-left:5px}
+.card.locked .ci{opacity:.9}
+.locked{text-align:center;padding:34px 16px 24px}
+.lk-ic{width:66px;height:66px;margin:0 auto 16px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
+.lk-ic svg{width:34px;height:34px}
+.locked h3{font-size:23px;margin:0 0 8px}
+.locked p{color:var(--muted);max-width:470px;margin:0 auto 16px;line-height:1.6}
 /* ---------- Main ---------- */
 .main{overflow-y:auto;min-height:0}
 .main::-webkit-scrollbar{width:12px}.main::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px;border:3px solid transparent;background-clip:padding-box}
@@ -535,7 +570,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
       </div>
       <div>
         <h1>Mud Engineer <span>Pro</span></h1>
-        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)">v4.2</b></small>
+        <small>Drilling Fluids Toolkit · <b style="color:var(--brand2)" onclick="app.devTap()" title="">v4.2</b></small>
       </div>
     </div>
     <div class="search"><div class="sbox"><input id="search" placeholder="Search calculators, courses, manual…" autocomplete="off"/></div></div>
@@ -2600,6 +2635,10 @@ const CATMETA = {
 const CATORDER = ['Basics','Density','Volumes','Hydraulics','Rheology','Solids','Chemistry','Brine','Well Control','Cementing'];
 const catList = ()=>{ const ks=Object.keys(CALC); return [...CATORDER.filter(c=>ks.includes(c)), ...ks.filter(c=>!CATORDER.includes(c))]; };
 const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+/* ---- Free vs Pro tiers (edit these to change the split) ---- */
+const FREE_CALCS = new Set(['phmw','convert','weightup','dilute','capacity','pump','annvel','bingham','retort','chlorides','kill','bithyd']);
+const FREE_COURSE_COUNT = 2;   // first N Mud School chapters are free; the rest are Pro
+const LOCK = '<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
 const app = {
   cur:'home', vals:{},
   fav: lsGet('mep_fav',[]),
@@ -2651,6 +2690,7 @@ const app = {
       {hole:'8.5', casing:'7" liner', md:8266, tvd:7444, lastCsg:7168, inc:90, formations:'Wara, Mauddud A/D/E/F', sys:'obm7030', mwLo:12.5, mwHi:12.9, washout:5, surf:800, dilF:0.7, unitCost:16.5}
     ]
   }),
+  pro: lsGet('mep_pro', false),
   init(){
     if(localStorage.getItem('mep_theme')==='light') document.documentElement.setAttribute('data-theme','light');
     // one-time cleanup of the legacy "KOC" operator default
@@ -2688,22 +2728,27 @@ const app = {
   },
   buildNav(){
     const nav=document.getElementById('nav'); let h='';
+    // Pro unlock entry — only in the native apps (web stays fully free)
+    if(this._gate()) h+= this.pro
+      ? `<div class="pro-nav-on">${svgi('star-f')} Pro unlocked</div>`
+      : `<div class="pro-cta" onclick="app.go('pro')"><span class="st">${svgi('star-f')}</span>Unlock Pro</div>`;
     // Calculators
     catList().forEach(cat=>{
       h+=`<div class="navgroup" data-g="${cat}"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:${catColor(cat)}">${iconCat(cat)}</span>${cat}<span class="arw">▼</span></div><div class="items">`;
-      CALC[cat].forEach(c=> h+=`<div class="navitem" data-search="${(c.name+' '+c.desc).toLowerCase()}" data-id="${c.id}" onclick="app.go('calc:${c.id}')">${c.name}</div>`);
+      CALC[cat].forEach(c=>{ const lk=this.locked('calc',c.id); h+=`<div class="navitem${lk?' locked':''}" data-search="${(c.name+' '+c.desc).toLowerCase()}" data-id="${c.id}" onclick="app.go('calc:${c.id}')">${c.name}${lk?LOCK:''}</div>`; });
       h+=`</div></div>`;
     });
     // Reports
     h+=`<div class="navgroup" data-g="reports"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:#ff9d2e">${svgi('report')}</span>Reports<span class="arw">▼</span></div><div class="items">`;
-    h+=`<div class="navitem" data-search="hydraulics report circulating pressure loss ecd bit" data-id="report:hyd" onclick="app.go('report:hyd')">Hydraulics Report</div>`;
-    h+=`<div class="navitem" data-search="daily mud report dmr generator generate" data-id="report:dmr" onclick="app.go('report:dmr')">DMR Generator</div>`;
-    h+=`<div class="navitem" data-search="dmr verify check calculations upload" data-id="report:verify" onclick="app.go('report:verify')">DMR Verify</div>`;
-    h+=`<div class="navitem" data-search="mud proposal program drilling fluids generator sections" data-id="report:proposal" onclick="app.go('report:proposal')">Mud Proposal</div>`;
+    { const rl=this.locked('report'); const rb=rl?LOCK:''; const rc=rl?' locked':'';
+    h+=`<div class="navitem${rc}" data-search="hydraulics report circulating pressure loss ecd bit" data-id="report:hyd" onclick="app.go('report:hyd')">Hydraulics Report${rb}</div>`;
+    h+=`<div class="navitem${rc}" data-search="daily mud report dmr generator generate" data-id="report:dmr" onclick="app.go('report:dmr')">DMR Generator${rb}</div>`;
+    h+=`<div class="navitem${rc}" data-search="dmr verify check calculations upload" data-id="report:verify" onclick="app.go('report:verify')">DMR Verify${rb}</div>`;
+    h+=`<div class="navitem${rc}" data-search="mud proposal program drilling fluids generator sections" data-id="report:proposal" onclick="app.go('report:proposal')">Mud Proposal${rb}</div>`; }
     h+=`</div></div>`;
     // Training courses
     h+=`<div class="navgroup collapsed" data-g="training"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:${catColor('Training')}">${svgi('cap')}</span>Training Courses<span class="arw">▼</span></div><div class="items">`;
-    TRAINING.forEach(t=> h+=`<div class="navitem" data-search="${(t.name+' '+t.desc).toLowerCase()}" data-id="${t.id}" onclick="app.go('train:${t.id}')">${t.name}</div>`);
+    TRAINING.forEach(t=>{ const lk=this.locked('course',t.id); h+=`<div class="navitem${lk?' locked':''}" data-search="${(t.name+' '+t.desc).toLowerCase()}" data-id="${t.id}" onclick="app.go('train:${t.id}')">${t.name}${lk?LOCK:''}</div>`; });
     h+=`</div></div>`;
     // Manual
     h+=`<div class="navgroup collapsed" data-g="manual"><div class="gt" onclick="app.toggleGroup(this)"><span class="ic" style="--c:${catColor('Manual')}">${svgi('book')}</span>Built-in Manual<span class="arw">▼</span></div><div class="items">`;
@@ -2745,18 +2790,87 @@ const app = {
     else if(route==='hub:calc'){ this.setActive(null); this.renderHub(view,'calc'); this.head('Calculations','Home / Calculations','All field calculators by category'); }
     else if(route==='hub:train'){ this.setActive(null); this.renderHub(view,'train'); this.head('Mud School','Home / Mud School','The complete drilling-fluids manual taught simply'); }
     else if(route==='hub:manual'){ this.setActive(null); this.renderHub(view,'manual'); this.head('Reference Manual','Home / Manual','Quick-reference chapters'); }
-    else if(route.startsWith('calc:')){ const id=route.slice(5); const c=this.findCalc(id); this.setActive(id); this.renderCalc(view,c); this.head(c.name,this.catOf(id)+' / Calculator',c.desc); }
+    else if(route.startsWith('calc:')){ const id=route.slice(5); const c=this.findCalc(id); this.setActive(id); if(this.locked('calc',id)){ this.proLock(view,c.name,c.desc,this.catOf(id)+' / Pro calculator'); } else { this.renderCalc(view,c); this.head(c.name,this.catOf(id)+' / Calculator',c.desc); } }
     else if(route.startsWith('man:')){ const id=route.slice(4); const m=MANUAL.find(x=>x.id===id); this.setActive(id); view.innerHTML='<div class="doc fade">'+m.html+'</div>'; this.head(m.name,'Manual','Reference — study material'); window.scrollTo(0,0); document.getElementById('main').scrollTo(0,0);}
-    else if(route.startsWith('train:')){ const id=route.slice(6); const t=TRAINING.find(x=>x.id===id); this.setActive(id); this.renderCourse(view,t); this.head(t.name,'Training Course',t.desc); document.getElementById('main').scrollTo(0,0);}
-    else if(route==='report:hyd'){ this.setActive('report:hyd'); this.renderReport(view); this.head('Hydraulics Report','Reports','Full circulating-system hydraulics analysis'); document.getElementById('main').scrollTo(0,0);}
-    else if(route==='report:dmr'){ this.setActive('report:dmr'); this.renderDMR(view,false); this.head('Daily Mud Report','Reports','Generate a full DMR — enter data, print a filed record'); document.getElementById('main').scrollTo(0,0);}
-    else if(route==='report:verify'){ this.setActive('report:verify'); this.renderDMR(view,true); this.head('DMR Verify','Reports','Enter a DMR — the app recomputes and flags every calculation'); document.getElementById('main').scrollTo(0,0);}
-    else if(route==='report:proposal'){ this.setActive('report:proposal'); this.renderProposal(view); this.head('Mud Proposal','Reports','Generate a sectioned drilling-fluids proposal'); document.getElementById('main').scrollTo(0,0);}
+    else if(route.startsWith('train:')){ const id=route.slice(6); const t=TRAINING.find(x=>x.id===id); this.setActive(id); if(this.locked('course',id)){ this.proLock(view,t.name,t.desc,'Mud School / Pro course'); } else { this.renderCourse(view,t); this.head(t.name,'Training Course',t.desc); } document.getElementById('main').scrollTo(0,0);}
+    else if(route==='report:hyd'){ this.setActive('report:hyd'); if(this.locked('report')){ this.proLock(view,'Hydraulics Report','Full circulating-system pressure-loss, ECD and bit-hydraulics analysis.','Reports / Pro'); } else { this.renderReport(view); this.head('Hydraulics Report','Reports','Full circulating-system hydraulics analysis'); document.getElementById('main').scrollTo(0,0);} }
+    else if(route==='report:dmr'){ this.setActive('report:dmr'); if(this.locked('report')){ this.proLock(view,'Daily Mud Report','Build a full DMR — it computes PV/YP, WPS, solids, ECD & cost, and exports to PDF.','Reports / Pro'); } else { this.renderDMR(view,false); this.head('Daily Mud Report','Reports','Generate a full DMR — enter data, print a filed record'); document.getElementById('main').scrollTo(0,0);} }
+    else if(route==='report:verify'){ this.setActive('report:verify'); if(this.locked('report')){ this.proLock(view,'DMR Verify','Enter a DMR and the app recomputes and flags every calculation.','Reports / Pro'); } else { this.renderDMR(view,true); this.head('DMR Verify','Reports','Enter a DMR — the app recomputes and flags every calculation'); document.getElementById('main').scrollTo(0,0);} }
+    else if(route==='report:proposal'){ this.setActive('report:proposal'); if(this.locked('report')){ this.proLock(view,'Mud Proposal','A sectioned drilling-fluids programme — property specs, additives, volumes & cost per hole size.','Reports / Pro'); } else { this.renderProposal(view); this.head('Mud Proposal','Reports','Generate a sectioned drilling-fluids proposal'); document.getElementById('main').scrollTo(0,0);} }
+    else if(route==='pro'){ this.setActive(null); this.renderPro(view); this.head('Unlock Pro','Home / Pro','Unlock the full professional toolkit'); document.getElementById('main').scrollTo(0,0);}
   },
   head(t,c,s){ document.getElementById('ptitle').textContent=t; document.getElementById('crumb').textContent=c; document.getElementById('psub').textContent=s||''; },
+  _gate(){ // tiering applies only in the native apps; the web/PWA stays the free showcase
+    if(lsGet('mep_forcegate',false)) return true;   // test hook
+    return !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform==='function' ? window.Capacitor.isNativePlatform() : true));
+  },
+  isPro(){ return !this._gate() || !!this.pro; },
+  isFreeCalc(id){ return FREE_CALCS.has(id); },
+  isFreeCourse(id){ const i=TRAINING.findIndex(t=>t.id===id); return i>=0 && i<FREE_COURSE_COUNT; },
+  locked(kind,id){ if(this.isPro()) return false;
+    if(kind==='calc') return !this.isFreeCalc(id);
+    if(kind==='course') return !this.isFreeCourse(id);
+    if(kind==='report') return true;
+    return false; },
+  proLock(view,title,sub,crumb){
+    this.head(title,crumb||'Pro feature','Unlock the full professional toolkit');
+    view.innerHTML=`<div class="doc fade pro-page"><div class="locked">
+      <div class="lk-ic">${LOCK}</div>
+      <h3>${title} <span class="pro-tag">PRO</span></h3>
+      <p>${sub||'This is a Pro feature.'} Unlock the full professional toolkit with a one-time purchase — it works completely offline.</p>
+      <div class="pro-cta-box" style="margin-top:4px"><button class="btn btn-primary pro-buy" onclick="app.go('pro')">${svgi('star-f')} See what's in Pro</button></div>
+    </div></div>`;
+    window.scrollTo(0,0); document.getElementById('main').scrollTo(0,0);
+  },
+  setPro(v){ this.pro=!!v; localStorage.setItem('mep_pro',JSON.stringify(this.pro)); this.buildNav(); this.go(this.cur||'home'); },
+  devTap(){ // hidden dev unlock: tap the version number 5× to toggle Pro (for on-device testing before billing)
+    this._dt=(this._dt||0)+1; clearTimeout(this._dtT); this._dtT=setTimeout(()=>{this._dt=0;},1500);
+    if(this._dt>=5){ this._dt=0; const np=!this.pro; this.setPro(np); alert('Developer unlock — Pro '+(np?'ENABLED':'disabled')+' on this device.'); } },
+  buyPro(){
+    // Real in-app purchase is wired at store launch (needs the Play/Apple product set up).
+    if(window.__mepIAP && typeof window.__mepIAP.buy==='function'){ window.__mepIAP.buy(); return; }
+    alert('The Pro unlock will be a one-time in-app purchase once the app is published to the store (the price is set there). Everything you see here is the Pro feature set.');
+  },
+  restorePro(){
+    if(window.__mepIAP && typeof window.__mepIAP.restore==='function'){ window.__mepIAP.restore(); return; }
+    alert('“Restore purchase” re-activates Pro on a new device signed in to the same store account. It becomes available once the store purchase is set up.');
+  },
+  renderPro(view){
+    const pro=this.isPro();
+    const feats=[
+      ['calc','All 48+ field calculators','Every category — density, hydraulics, rheology, solids, chemistry, brine, well control, cementing.'],
+      ['cap','All 21 Mud School courses','The full training programme with quizzes, plus the per-chapter slide generator.'],
+      ['report','DMR Generator &amp; Verify','Build Daily Mud Reports and auto-check every calculation, then export to PDF.'],
+      ['layers','Mud Proposal generator','Sectioned drilling-fluids programmes — property specs, additives, volumes &amp; cost.'],
+      ['swap','Hydraulics Report','Full circulating-system pressure-loss, ECD and bit-hydraulics analysis.'],
+      ['report','PDF &amp; slide export','Professional report PDFs and Mud-School presentation decks.']
+    ];
+    let h=`<div class="doc fade pro-page">
+      <div class="pro-hero">
+        <div class="pro-crown">${svgi('star-f')}</div>
+        <h3>Mud Engineer <span class="pro-tag">PRO</span></h3>
+        <p>Unlock the full professional toolkit — a <b>one-time purchase</b>, yours forever, working completely offline.</p>
+      </div>`;
+    if(pro) h+=`<div class="box" style="border-left-color:var(--accent)"><b>✓ Pro is unlocked on this device.</b> Every feature below is available — thank you!</div>`;
+    h+=`<div class="pro-grid">`;
+    feats.forEach(f=> h+=`<div class="pro-feat"><span class="pf-ic">${svgi(f[0])}</span><div><h4>${f[1]}</h4><p>${f[2]}</p></div><span class="pf-ck">${svgi('check')}</span></div>`);
+    h+=`</div>`;
+    if(!pro){
+      h+=`<div class="pro-cta-box">
+        <div class="pro-price">One-time unlock <span>· price shown at store launch</span></div>
+        <button class="btn btn-primary pro-buy" onclick="app.buyPro()">${svgi('star-f')} Unlock Pro</button>
+        <button class="btn pro-restore" onclick="app.restorePro()">Restore purchase</button>
+        <p class="pro-fine">A one-time in-app purchase — no subscription. Restores free on any device signed in to the same store account.</p>
+      </div>`;
+    } else {
+      h+=`<div class="pro-cta-box"><button class="btn btn-primary" onclick="app.go('home')">← Back to the app</button></div>`;
+    }
+    h+=`</div>`;
+    view.innerHTML=h; window.scrollTo(0,0);
+  },
   findCalc(id){ for(const cat in CALC){const f=CALC[cat].find(c=>c.id===id); if(f)return f;} },
   catOf(id){ for(const cat in CALC){if(CALC[cat].some(c=>c.id===id))return cat;} return ''; },
-  calcCard(c,cat){ return `<div class="card" style="--c:${catColor(cat)}" onclick="app.go('calc:${c.id}')"><button class="cardstar ${this.isFav(c.id)?'on':''}" title="Favorite" onclick="app.toggleFav('${c.id}',event)">${this.isFav(c.id)?svgi('star-f'):svgi('star')}</button><span class="ci">${iconCalc(c.id,cat)}</span><h4>${c.name}</h4><p>${c.desc}</p></div>`; },
+  calcCard(c,cat){ const lk=this.locked('calc',c.id); return `<div class="card${lk?' locked':''}" style="--c:${catColor(cat)}" onclick="app.go('calc:${c.id}')"><button class="cardstar ${this.isFav(c.id)?'on':''}" title="Favorite" onclick="app.toggleFav('${c.id}',event)">${this.isFav(c.id)?svgi('star-f'):svgi('star')}</button><span class="ci">${iconCalc(c.id,cat)}</span><h4>${c.name}${lk?' <span class="minipro">PRO</span>':''}</h4><p>${c.desc}</p></div>`; },
   renderHome(view){
     const nCalc=Object.values(CALC).flat().length;
     const nQuiz=TRAINING.reduce((a,t)=>a+(t.quiz?t.quiz.length:0),0);
@@ -2802,7 +2916,7 @@ const app = {
     } else if(kind==='train'){
       h=`<div class="hubhead fade">${back}<h3><span class="hh-ic" style="--c:#6d5cff">${svgi('cap')}</span>Mud School</h3><p>${TRAINING.length} courses covering the entire drilling-fluids engineering manual — explained simply, with ${TRAINING.reduce((a,t)=>a+(t.quiz?t.quiz.length:0),0)} quiz questions.</p></div>`;
       h+=`<div class="grid">`;
-      TRAINING.forEach(t=> h+=`<div class="card" style="--c:#6d5cff" onclick="app.go('train:${t.id}')"><span class="ci">${svgi('cap')}</span><h4>${t.name}</h4><p>${t.desc}</p><span class="tag">${t.modules.length} lessons</span></div>`);
+      TRAINING.forEach(t=>{ const lk=this.locked('course',t.id); h+=`<div class="card${lk?' locked':''}" style="--c:#6d5cff" onclick="app.go('train:${t.id}')"><span class="ci">${svgi('cap')}</span><h4>${t.name}${lk?' <span class="minipro">PRO</span>':''}</h4><p>${t.desc}</p><span class="tag">${t.modules.length} lessons</span></div>`; });
       h+=`</div>`;
     } else if(kind==='manual'){
       h=`<div class="hubhead fade">${back}<h3><span class="hh-ic" style="--c:#7d93ff">${svgi('book')}</span>Reference Manual</h3><p>${MANUAL.length} quick-reference chapters plus the field formula sheet and glossary.</p></div>`;
@@ -3474,6 +3588,7 @@ const app = {
   propAddSec(){ this.prop.secs.push({hole:'12.25',casing:'9⅝"',md:8000,tvd:7500,lastCsg:6000,inc:30,formations:'',sys:'obm7030',mwLo:11,mwHi:12,washout:5,surf:1000,dilF:0.6,unitCost:15}); this.renderProposal(document.getElementById('view')); },
   propDelSec(i){ this.prop.secs.splice(i,1); this.renderProposal(document.getElementById('view')); },
   slidesPdf(id){
+    if(!this.isPro()){ this.go('pro'); return; }
     const JP=window.jspdf; if(!JP||!JP.jsPDF){ alert('PDF engine not loaded. Open the app online once so it caches, then it works offline.'); return; }
     const t=TRAINING.find(x=>x.id===id); if(!t){ alert('Chapter not found.'); return; }
     const doc=new JP.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
@@ -3825,6 +3940,39 @@ const app = {
   }
 };
 app.init();
+
+/* ---- In-app purchase bridge (Pro one-time unlock) -----------------------------
+   Uses cordova-plugin-purchase (global `CdvPurchase`) when present in the native
+   build. No-ops on web/PWA (plugin absent) so nothing breaks there. The app's
+   buyPro()/restorePro() call window.__mepIAP.{buy,restore} when it exists.
+   STORE SETUP (see IAP-SETUP.md): create a NON-CONSUMABLE product with id
+   `pro_unlock` in both Google Play and App Store Connect, then install the plugin:
+     npm i cordova-plugin-purchase && npx cap sync
+--------------------------------------------------------------------------------*/
+const PRO_PRODUCT_ID = 'pro_unlock';
+(function initIAP(){
+  function start(){
+    try{
+      if(!window.CdvPurchase || !CdvPurchase.store){ return; }   // web / plugin not installed → skip
+      const {store, ProductType, Platform, LogLevel} = CdvPurchase;
+      store.verbosity = LogLevel.WARNING;
+      store.register([{ id: PRO_PRODUCT_ID, type: ProductType.NON_CONSUMABLE,
+        platform: (window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform()==='ios') ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY }]);
+      const grant = ()=>{ try{ app.setPro(true); }catch(e){} };
+      store.when()
+        .approved(tr=>{ tr.verify(); })
+        .verified(rc=>{ rc.finish(); if(rc.products && rc.products.some(p=>p.id===PRO_PRODUCT_ID)) grant(); })
+        .productUpdated(()=>{ try{ const p=store.get(PRO_PRODUCT_ID); if(p && p.owned) grant(); }catch(e){} });
+      store.error(e=>{ try{ console.warn('IAP error', e && e.code, e && e.message); }catch(_){} });
+      store.initialize().then(()=>{ try{ const p=store.get(PRO_PRODUCT_ID); if(p && p.owned) grant(); }catch(e){} });
+      window.__mepIAP = {
+        buy(){ try{ const p=store.get(PRO_PRODUCT_ID); const o=p && p.getOffer && p.getOffer(); if(o) o.order(); else alert('Pro is not available right now — please try again shortly.'); }catch(e){ alert('Purchase could not be started.'); } },
+        restore(){ try{ store.restorePurchases(); }catch(e){} }
+      };
+    }catch(e){ /* leave __mepIAP undefined → buyPro() shows its friendly fallback */ }
+  }
+  if(window.Capacitor){ document.addEventListener('deviceready', start); setTimeout(start, 1500); }
+})();
 
 /* ---- Themed dropdown sheet ----------------------------------------------------
    Android WebView renders <select> as a native OS dialog: white, unthemed, tiny rows,
