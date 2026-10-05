@@ -2636,7 +2636,7 @@ const CATORDER = ['Basics','Density','Volumes','Hydraulics','Rheology','Solids',
 const catList = ()=>{ const ks=Object.keys(CALC); return [...CATORDER.filter(c=>ks.includes(c)), ...ks.filter(c=>!CATORDER.includes(c))]; };
 const lsGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
 /* ---- Free vs Pro tiers (edit these to change the split) ---- */
-const FREE_CALCS = new Set(['phmw','convert','weightup','dilute','capacity','pump','annvel','bingham','retort','chlorides','kill','bithyd']);
+const FREE_CALCS = new Set(['phmw','convert','weightup','capacity','pump','bingham']);
 const FREE_COURSE_COUNT = 2;   // first N Mud School chapters are free; the rest are Pro
 const LOCK = '<svg class="lk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
 const app = {
