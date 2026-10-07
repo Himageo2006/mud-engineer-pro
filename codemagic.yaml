@@ -13,6 +13,8 @@ workflows:
     integrations:
       app_store_connect: BennysFarm
     environment:
+      groups:
+        - ios            # holds CERTIFICATE_PRIVATE_KEY for the account's distribution cert
       node: 20
       xcode: latest
       cocoapods: default
@@ -29,16 +31,15 @@ workflows:
           [ -d ios ] || npx cap add ios
           npx @capacitor/assets generate --ios || true
           npx cap sync ios
-      - name: Set up code signing (register bundle id, create cert + profile)
+      - name: Set up code signing (reuse account distribution cert, create profile)
         script: |
           keychain initialize
-          # No stored signing cert on this account, so generate a private key
-          # and let App Store Connect issue a distribution certificate for it,
-          # then create/fetch the App Store provisioning profile for the bundle id.
-          openssl genrsa -out /tmp/cm_cert_key.pem 2048
+          # CERTIFICATE_PRIVATE_KEY comes from the "ios" group; fetch-signing-files
+          # reads it automatically and reuses the existing distribution certificate
+          # (Apple already has the max), then creates the App Store profile for the id.
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
             --type IOS_APP_STORE \
-            --certificate-key @file:/tmp/cm_cert_key.pem \
             --create
           keychain add-certificates
           xcode-project use-profiles
