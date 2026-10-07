@@ -20,9 +20,6 @@ workflows:
         BUNDLE_ID: "com.mudengineer.pro"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.mudengineer.pro
     scripts:
       - name: Install dependencies
         script: npm ci || npm install
@@ -32,8 +29,14 @@ workflows:
           [ -d ios ] || npx cap add ios
           npx @capacitor/assets generate --ios || true
           npx cap sync ios
-      - name: Set up code signing
-        script: xcode-project use-profiles
+      - name: Set up code signing (register bundle id, create profile & cert if missing)
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: Set build number from Codemagic counter
         script: |
           cd ios/App
