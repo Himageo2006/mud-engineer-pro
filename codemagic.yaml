@@ -29,11 +29,16 @@ workflows:
           [ -d ios ] || npx cap add ios
           npx @capacitor/assets generate --ios || true
           npx cap sync ios
-      - name: Set up code signing (register bundle id, create profile & cert if missing)
+      - name: Set up code signing (register bundle id, create cert + profile)
         script: |
           keychain initialize
+          # No stored signing cert on this account, so generate a private key
+          # and let App Store Connect issue a distribution certificate for it,
+          # then create/fetch the App Store provisioning profile for the bundle id.
+          openssl genrsa -out /tmp/cm_cert_key.pem 2048
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key @file:/tmp/cm_cert_key.pem \
             --create
           keychain add-certificates
           xcode-project use-profiles
