@@ -23,10 +23,6 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
     scripts:
-      - name: List signing certificates (diagnostic)
-        script: |
-          echo "===== ALL SIGNING CERTIFICATES ====="
-          app-store-connect certificates list --json || true
       - name: Install dependencies
         script: npm ci || npm install
       - name: Add iOS platform, generate icons & sync web app
