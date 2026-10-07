@@ -31,6 +31,17 @@ workflows:
           [ -d ios ] || npx cap add ios
           npx @capacitor/assets generate --ios || true
           npx cap sync ios
+      - name: Raise iOS deployment target to 15 & mark app encryption-exempt
+        script: |
+          cd ios/App
+          # Deployment target 15.0 (clears ITMS-90068; required by Apple from Apr 2027)
+          sed -i '' "s/platform :ios, '[0-9.]*'/platform :ios, '15.0'/" Podfile || true
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 15.0;/g' App.xcodeproj/project.pbxproj || true
+          # Declare no non-exempt encryption so TestFlight builds skip the compliance prompt
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" App/Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" App/Info.plist
+          # Reinstall pods against the new platform
+          pod install
       - name: Set up code signing (reuse account distribution cert, create profile)
         script: |
           keychain initialize
