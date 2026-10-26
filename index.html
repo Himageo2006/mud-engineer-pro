@@ -2295,12 +2295,12 @@ def('Solids',{
       ],
       formula:'ROC (%wt) = 100 × (Oilᵥ×SGₒ) ÷ (Oilᵥ×SGₒ + Solidsᵥ×SGc)\nOil lost = cuttings vol × (Oil% ÷ Solids%)\nCuttings (bbl/day) = Dh²÷1029.4 × ROP × 24',
       steps:`ROC = 100 × (${round(v.oilv)}×${round(v.oilsg,2)}) ÷ (${round(v.oilv)}×${round(v.oilsg,2)} + ${round(v.solv)}×${round(v.cutsg,2)}) = <b>${round(roc,1)}%</b>\nOil lost = ${round(cutBblDay,1)} × ${round(v.oilv)}/${round(v.solv)} = <b>${round(oilBblDay,2)} bbl/day</b>`,
-      note:'Retort a washed, dried cuttings sample to get oil/water/solids. ROC (oil retained per weight of cuttings) drives NAF discharge compliance where allowed (OSPAR ≤ 6.9% by wt on dry cuttings). In Kuwait land wells cuttings are skipped/hauled — here the value is tracking BASE-OIL LOSS & cost, and flagging poor cuttings-dryer / shaker performance or over-oily mud. Reduce with a cuttings dryer, finer screens, wetting-agent balance and lower OWR where possible.'};
+      note:'Retort a washed, dried cuttings sample to get oil/water/solids. ROC (oil retained per weight of cuttings) drives NAF discharge compliance where allowed (OSPAR ≤ 6.9% by wt on dry cuttings). On many land wells cuttings are skipped/hauled — here the value is tracking BASE-OIL LOSS & cost, and flagging poor cuttings-dryer / shaker performance or over-oily mud. Reduce with a cuttings dryer, finer screens, wetting-agent balance and lower OWR where possible.'};
   }
 });
 def('Basics',{
   id:'recparams', name:'Recommended Mud Parameters', icon:'✅',
-  desc:'Pick a mud system + hole section and get the recommended property ranges and hole-cleaning targets (KOC N&WK practice).',
+  desc:'Pick a mud system + hole section and get the recommended property ranges and hole-cleaning targets (recommended industry practice).',
   inputs:[
     {k:'sys',label:'Mud System',unit:'',def:'obm7030',opts:[
       ['spud','Spud Mud (WBM)'],['gelpoly','Gel Polymer (WBM)'],['kclpoly','KCl / NaCl Polymer (WBM)'],
@@ -2325,7 +2325,7 @@ def('Basics',{
       '12.25':{q:'800 – 1100 gpm',rpm:'120 – 150',av:'> 150 ft/min',fac:'Zone I 1.4× / II 1.8× / III 2.0× B/U'},
       '8.5':{q:'600 – 700 gpm',rpm:'100 – 120',av:'> 180 ft/min',fac:'Zone I 1.4× / II 1.6× / III 1.7× B/U'},
       '6.125':{q:'300 – 400 gpm',rpm:'70 – 80',av:'> 200 ft/min',fac:'Zone I 1.4× / II 1.5× / III 1.6× B/U'}};
-    // which hole sections each mud system is normally used on (KOC N&WK)
+    // which hole sections each mud system is normally used on (industry practice)
     const USE={spud:['36','28','22'], gelpoly:['22','16'], kclpoly:['16','8.5','6.125'], obm7030:['12.25','8.5'], obm8020:['16','12.25','8.5','6.125'], obm955:['6.125','8.5']};
     const holeMap={'36':'36"','28':'28"','22':'22"','16':'16"','12.25':'12¼"','8.5':'8½"','6.125':'6⅛"'};
     const s=SYS[v.sys], hc=FLOW[v.hole], holeName=holeMap[v.hole];
@@ -2344,9 +2344,9 @@ def('Basics',{
     return {main:{n:s.n,v:holeName,u:'section'},
       rows,
       warn: fit? undefined : s.n+' is normally used only on the '+usual+' section'+(USE[v.sys].length>1?'s':'')+' — showing its spec anyway for '+holeName+'.',
-      formula:'Recommended KOC N&WK (Team-II) drilling-fluid property window for the selected system & hole size, with hole-cleaning targets by inclination zone (I 0–40°, II 40–60°, III 60°+).',
+      formula:'Recommended drilling-fluid property window for the selected system & hole size, with hole-cleaning targets by inclination zone (I 0–40°, II 40–60°, III 60°+).',
       steps:`System: <b>${s.n}</b> · Section: <b>${holeName}</b> · MW range <b>${s.mw} ppg</b>`,
-      note:'Spud Mud is used on the surface 36″/28″/22″ holes; Gel/KCl-Polymer WBM on the intermediate holes; OBM/NAF on the deviated & reservoir sections. Ranges reflect the field mud proposals (guidance, not a substitute for the well-specific program or KOC instructions). "ALAP" = keep PV as low as practical; LSYP = 6-rpm low-shear yield. Confirm mud weight with the KOC representative; raise gradually across reactive shales.'};
+      note:'Spud Mud is used on the surface 36″/28″/22″ holes; Gel/KCl-Polymer WBM on the intermediate holes; OBM/NAF on the deviated & reservoir sections. Ranges reflect the field mud proposals (guidance, not a substitute for the well-specific program or operator instructions). "ALAP" = keep PV as low as practical; LSYP = 6-rpm low-shear yield. Confirm mud weight with the operator representative; raise gradually across reactive shales.'};
   }
 });
 
@@ -2738,7 +2738,7 @@ const app = {
     vPV:'', vYP:'', vLSYP:'', vOWR:'', vWPS:'', vAV:'', vECD:'', vBU:'', vBitdp:''
   }, lsGet('mep_dmr', {})),
   prop: lsGet('mep_prop', {
-    company:'Generic', companyName:'', logo:'', logoW:0, logoH:0, well:'', rig:'', field:'', operator:'Kuwait Oil Company (KOC)', objective:'', welltype:'', propno:'', date:'', preparedBy:'', approvedBy:'',
+    company:'Generic', companyName:'', logo:'', logoW:0, logoH:0, well:'', rig:'', field:'', operator:'', objective:'', welltype:'', propno:'', date:'', preparedBy:'', approvedBy:'',
     secs:[
       {hole:'16', casing:'13⅜"', md:5970, tvd:5883, lastCsg:1126, inc:17, formations:'Dammam, Rus, Radhuma, Tayarat, Hartha, Sadi, Mutriba', sys:'gelpoly', mwLo:8.7, mwHi:9.2, washout:10, surf:1000, dilF:1.0, unitCost:2.2},
       {hole:'12.25', casing:'9⅝"', md:7168, tvd:6942, lastCsg:5970, inc:42, formations:'Mutriba, Mishrif, Rumaila, Ahmadi, Tuba', sys:'obm7030', mwLo:11.5, mwHi:12.5, washout:5, surf:1000, dilF:0.5, unitCost:15.1},
@@ -2748,8 +2748,6 @@ const app = {
   pro: lsGet('mep_pro', false),
   init(){
     if(localStorage.getItem('mep_theme')==='light') document.documentElement.setAttribute('data-theme','light');
-    // one-time cleanup of the legacy "KOC" operator default
-    if(!localStorage.getItem('mep_mig_koc')){ if(this.dmr&&this.dmr.operator==='KOC') this.dmr.operator=''; localStorage.setItem('mep_dmr',JSON.stringify(this.dmr)); localStorage.setItem('mep_mig_koc','1'); }
     this.buildNav();
     this.go('home');
     document.getElementById('search').addEventListener('input',e=>this.filter(e.target.value.toLowerCase()));
@@ -3755,13 +3753,13 @@ const app = {
     if(p.objective){ cy+=9; const ls=doc.splitTextToSize('Objective: '+p.objective,W-2*M-24); doc.text(ls,W/2,cy,{align:'center'}); cy+=ls.length*6; }
     cy+=4; doc.setFontSize(12); doc.text(p.date||'',W/2,cy,{align:'center'});
     doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(AC[0],AC[1],AC[2]); doc.text('Submitted to',W/2,H-74,{align:'center'});
-    doc.setFontSize(15); doc.text('Kuwait Oil Company (KOC)',W/2,H-66,{align:'center'});
+    doc.setFontSize(15); doc.text(p.operator||'—',W/2,H-66,{align:'center'});
     doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(INK[0],INK[1],INK[2]); doc.text('Drilling Department',W/2,H-59,{align:'center'});
     doc.setFontSize(10); doc.text(('Proposal No. '+(p.propno||'—'))+(p.welltype?'      Well type: '+p.welltype:''),W/2,H-48,{align:'center'});
     // ===== PROPOSAL INFORMATION =====
     doc.addPage(); y=M; bar('DRILLING FLUIDS PROPOSAL');
-    kv({ body:[ ...(p.companyName?[['Drilling-fluids company',p.companyName]]:[]),['Client name',p.operator||'Kuwait Oil Company (KOC)'],['Objective',p.objective||''],['Field',p.field||''],['Well name',p.well||''],['Well type',p.welltype||''],['Rig name',p.rig||''],['Proposal number',p.propno||''],['Date issued',p.date||''] ] });
-    tbl({ head:[['Role','Name','Contact']], body:[ ['Prepared by',p.preparedBy||'',''],['Approved by',p.approvedBy||'',''],['KOC approval','',''] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:38}} });
+    kv({ body:[ ...(p.companyName?[['Drilling-fluids company',p.companyName]]:[]),['Client name',p.operator||''],['Objective',p.objective||''],['Field',p.field||''],['Well name',p.well||''],['Well type',p.welltype||''],['Rig name',p.rig||''],['Proposal number',p.propno||''],['Date issued',p.date||''] ] });
+    tbl({ head:[['Role','Name','Contact']], body:[ ['Prepared by',p.preparedBy||'',''],['Approved by',p.approvedBy||'',''],['Operator approval','',''] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:38}} });
     // ===== PROJECT SUMMARY =====
     doc.addPage(); y=M; sec('1','Project Summary');
     let n=1, totCost=0;
@@ -3796,7 +3794,7 @@ const app = {
     tbl({ head:[['Severity','Recommended treatment']], body:[
       ['Seepage (< 20 bbl/hr)','Treat active system: 6 ppb graphite/PO + 6 ppb CaCO₃(M) + 6 ppb LCM(F) + 4–8 ppb sulphonated asphalt'],
       ['Partial (20 – 50 bbl/hr)','100 ppb LCM pill on top of loss zone — 20% mica(F) / 40% mica(M)+walnut(M)+cotton seed / 40% mica(C)+walnut(C)'],
-      ['Severe (> 50 bbl/hr)','200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. KOC approval before mixing.'] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:40}} });
+      ['Severe (> 50 bbl/hr)','200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. Operator approval before mixing.'] ], columnStyles:{0:{fontStyle:'bold',fillColor:LABF,cellWidth:40}} });
     sec(String(p.secs.length+5),'Stuck-pipe Free Pill (per 50 bbl)');
     tbl({ head:[['Density (ppg)','Diesel (bbl)','Spotting surfactant (drum)','Water (bbl)','Barite (lb)']], body:[['8','29','3','15','1925'],['10','27','3','14','6600'],['12','26','3','11','11750'],['14','26','3','7','17650'],['16','25','3','5','22750']], bodyStyles:{halign:'right'}, columnStyles:{0:{fontStyle:'bold'}} });
     para('Cover 100 ft of annulus above the free point + 10%; add 3–4 gal/bbl spotting surfactant; soak 30 min under tension, working the pipe while pumping 1–2 bbl/30 min.');
@@ -3910,7 +3908,7 @@ const app = {
     <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Severity</th><th>Treatment</th></tr></thead><tbody>
       <tr><td>Seepage (&lt; 20 bbl/hr)</td><td>Treat active: 6 ppb graphite/PO + 6 ppb CaCO₃(M) + 6 ppb LCM(F) + 4–8 ppb sulphonated asphalt</td></tr>
       <tr><td>Partial (20 – 50 bbl/hr)</td><td>100 ppb LCM pill on top of loss zone — 20% mica(F) / 40% mica(M)+walnut(M)+cotton seed / 40% mica(C)+walnut(C)</td></tr>
-      <tr><td>Severe (&gt; 50 bbl/hr)</td><td>200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. KOC approval before mixing.</td></tr>
+      <tr><td>Severe (&gt; 50 bbl/hr)</td><td>200 ppb LCM pill (same blend, coarser); reservoir: CaCO₃ grit 25 / M 25 / C 50 lb/bbl. Operator approval before mixing.</td></tr>
     </tbody></table></div>
     <h4 class="rep-h">Appendix — Stuck-pipe free pill (per 50 bbl)</h4>
     <div class="rtbl-wrap"><table class="rtbl out"><thead><tr><th>Density (ppg)</th><th>Diesel (bbl)</th><th>Spotting surfactant (drum)</th><th>Water (bbl)</th><th>Barite (lb)</th></tr></thead><tbody>
@@ -3923,7 +3921,7 @@ const app = {
     <p class="rep-sub">Cover 100 ft of annulus above the free point + 10%; add 3–4 gal/bbl spotting surfactant; soak 30 min under tension, work pipe while pumping 1–2 bbl/30 min.</p>
     <h4 class="rep-h">Appendix — Completion / displacement train</h4>
     <p class="rep-sub"><b>WBM →</b> Caustic Soda pill 30–50 bbl · Detergent pill 30–50 · Hi-Vis pill 30–50 · Completion brine (0.2 ppg over reservoir pressure).<br><b>OBM →</b> Diesel pill 30–50 bbl · Surfactant pill 30–50 · Hi-Vis pill 30–50 · Completion brine. Ensure tanks are clean before mixing.</p>
-    <p class="rep-sub">Generated by Mud Engineer Pro. Property ranges & volumes are recomputed from your section inputs (KOC N&amp;WK practice) — always confirm against the well-specific program and KOC instructions.</p>`;
+    <p class="rep-sub">Generated by Mud Engineer Pro. Property ranges & volumes are recomputed from your section inputs (recommended industry practice) — always confirm against the well-specific program and operator instructions.</p>`;
     const out=document.getElementById('propout'); if(out)out.innerHTML=html;
   },
   renderCalc(view,c){
