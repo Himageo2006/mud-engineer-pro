@@ -81,3 +81,91 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true   # set to false, or add a submit_to_app_store block, when ready for review
+
+  # Android (Play Store) — builds a signed .aab in the cloud, no local machine needed.
+  # One-time setup in codemagic.io:
+  #   Code signing ▸ Android ▸ upload mudengineer-upload.keystore
+  #     reference name: mudengineer_upload   key alias: mudengineer   (+ store/key passwords)
+  #   Then builds auto-trigger on push to main; download the .aab artifact and upload to Play,
+  #   or enable the google_play publishing block at the bottom (needs a Play service-account JSON).
+  android-capacitor:
+    name: Mud Engineer Pro — Android (Play Store)
+    instance_type: linux_x2
+    max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
+    environment:
+      android_signing:
+        - mudengineer_upload   # keystore reference uploaded in Codemagic (see note above)
+      node: 20
+      vars:
+        PACKAGE_NAME: "com.mudengineer.pro"
+    scripts:
+      - name: Install dependencies
+        script: npm ci || npm install
+      - name: Add Android platform, generate icons & sync web app
+        script: |
+          node copy-web.js
+          [ -d android ] || npx cap add android
+          npx @capacitor/assets generate --android || true
+          npx cap sync android
+      - name: Upgrade SDK / AGP / Gradle for Play targetSdk 36
+        script: |
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/' android/variables.gradle || true
+          sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/' android/variables.gradle || true
+          sed -i 's#com.android.tools.build:gradle:[0-9.]*#com.android.tools.build:gradle:8.9.1#' android/build.gradle || true
+          sed -i 's#gradle-[0-9.]*-all.zip#gradle-8.11.1-all.zip#' android/gradle/wrapper/gradle-wrapper.properties || true
+      - name: Point Gradle at the Android SDK
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+      - name: Inject release signing (reads Codemagic keystore env vars)
+        script: |
+          cd android
+          python3 - <<'PY'
+          import re
+          p = 'app/build.gradle'
+          s = open(p).read()
+          if 'signingConfigs' not in s:
+              s = s.replace('android {',
+                  'android {\n'
+                  '    signingConfigs {\n'
+                  '        release {\n'
+                  '            storeFile file(System.getenv("CM_KEYSTORE_PATH"))\n'
+                  '            storePassword System.getenv("CM_KEYSTORE_PASSWORD")\n'
+                  '            keyAlias System.getenv("CM_KEY_ALIAS")\n'
+                  '            keyPassword System.getenv("CM_KEY_PASSWORD")\n'
+                  '        }\n'
+                  '    }', 1)
+              s = re.sub(r'(buildTypes\s*\{\s*release\s*\{)',
+                         r'\1\n            signingConfig signingConfigs.release', s, count=1)
+              open(p, 'w').write(s)
+              print('signing config injected')
+          else:
+              print('signing config already present')
+          PY
+      - name: Set versionCode (latest Play + 1, else project counter)
+        script: |
+          cd android
+          LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" 2>/dev/null || echo "")
+          if [ -n "$LATEST" ]; then NEXT=$((LATEST + 1)); else NEXT="$PROJECT_BUILD_NUMBER"; fi
+          echo "versionCode -> $NEXT (latest Play: ${LATEST:-unknown})"
+          sed -i "s/versionCode [0-9][0-9]*/versionCode $NEXT/" app/build.gradle
+      - name: Build signed release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/mapping.txt
+    # To auto-publish to the Play internal track later, uncomment and add a
+    # service-account JSON to a "google_play" group as GCLOUD_SERVICE_ACCOUNT_CREDENTIALS:
+    # publishing:
+    #   google_play:
+    #     credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    #     track: internal
+    #     submit_as_draft: false
