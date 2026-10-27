@@ -10,6 +10,14 @@ workflows:
     name: Mud Engineer Pro — iOS (App Store)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+      cancel_previous_builds: true
     integrations:
       app_store_connect: BennysFarm
     environment:
@@ -54,10 +62,13 @@ workflows:
             --create
           keychain add-certificates
           xcode-project use-profiles
-      - name: Set build number from Codemagic counter
+      - name: Set build number (latest TestFlight + 1)
         script: |
           cd ios/App
-          agvtool new-version -all "$BUILD_NUMBER" || true
+          LATEST=$(app-store-connect get-latest-testflight-build-number "6819994685" 2>/dev/null || echo "")
+          if [ -n "$LATEST" ]; then NEXT=$((LATEST + 1)); else NEXT="$BUILD_NUMBER"; fi
+          echo "Using build number $NEXT (latest TestFlight: ${LATEST:-unknown})"
+          agvtool new-version -all "$NEXT" || true
       - name: Build .ipa
         script: |
           xcode-project build-ipa \
