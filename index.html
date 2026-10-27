@@ -4010,12 +4010,13 @@ const PRO_PRODUCT_ID = 'pro_unlock';
       store.register([{ id: PRO_PRODUCT_ID, type: ProductType.NON_CONSUMABLE,
         platform: (window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform()==='ios') ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY }]);
       const grant = ()=>{ try{ app.setPro(true); }catch(e){} };
+      const checkOwned = ()=>{ try{ if(store.owned && store.owned(PRO_PRODUCT_ID)){ grant(); return; } }catch(e){} try{ const p=store.get(PRO_PRODUCT_ID); if(p && p.owned) grant(); }catch(e){} };
       store.when()
-        .approved(tr=>{ tr.verify(); })
-        .verified(rc=>{ rc.finish(); if(rc.products && rc.products.some(p=>p.id===PRO_PRODUCT_ID)) grant(); })
-        .productUpdated(()=>{ try{ const p=store.get(PRO_PRODUCT_ID); if(p && p.owned) grant(); }catch(e){} });
+        .approved(tr=>{ try{ if(tr.products && tr.products.some(p=>p.id===PRO_PRODUCT_ID)) grant(); }catch(e){} try{ tr.finish(); }catch(e){} })
+        .verified(rc=>{ try{ rc.finish(); }catch(e){} checkOwned(); })
+        .productUpdated(()=>{ checkOwned(); });
       store.error(e=>{ try{ console.warn('IAP error', e && e.code, e && e.message); }catch(_){} });
-      store.initialize().then(()=>{ try{ const p=store.get(PRO_PRODUCT_ID); if(p && p.owned) grant(); }catch(e){} });
+      store.initialize().then(()=>{ checkOwned(); });
       window.__mepIAP = {
         buy(){ try{ const p=store.get(PRO_PRODUCT_ID); const o=p && p.getOffer && p.getOffer(); if(o) o.order(); else alert('Pro is not available right now — please try again shortly.'); }catch(e){ alert('Purchase could not be started.'); } },
         restore(){ try{ store.restorePurchases(); }catch(e){} }
