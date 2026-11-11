@@ -48,6 +48,10 @@ workflows:
           # Declare no non-exempt encryption so TestFlight builds skip the compliance prompt
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" App/Info.plist 2>/dev/null \
             || /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" App/Info.plist
+          # Meta SDK for Facebook/Instagram app-install ad measurement (AEM, no IDFA)
+          node ../../scripts/add-fbsdk-ios.cjs 1857511288592188 f9ae5e3df7015285b0918cc5a549bb9d "Mud Engineer Pro"
+          # App version shown in the App Store (template default is 1.0)
+          sed -i '' 's/MARKETING_VERSION = [0-9.]*;/MARKETING_VERSION = 1.1;/g' App.xcodeproj/project.pbxproj
           # Reinstall pods against the new platform
           pod install
       - name: Set up code signing (reuse account distribution cert, create profile)
